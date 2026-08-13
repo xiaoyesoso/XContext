@@ -1,0 +1,22 @@
+# Directories that should not be uploaded to GitHub
+extra_doc/
+openspec/
+
+# Sensitive environment configuration
+.env
+*.env
+
+# Runtime artifacts
+archive/
+context.db
+*.sqlite3
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
