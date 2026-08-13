@@ -4,10 +4,19 @@ from app.models import ContextAuthority, ContextItem, ContextType
 from app.core.pipeline import Orderer, _item_cost
 
 
+# Item types that are inherently volatile and must sit in the tail,
+# regardless of their authority.
+_VOLATILE_TYPES = {
+    ContextType.USER_INPUT,
+    ContextType.MODEL_OUTPUT,
+    ContextType.TOOL_RESULT,
+}
+
 # Item types that are stable across turns and should sit in the cache prefix.
 _STABLE_TYPES = {
     ContextType.CONSTRAINT,
     ContextType.PROFILE,
+    ContextType.FACT,
 }
 
 _STABLE_AUTHORITIES = {
@@ -18,6 +27,8 @@ _STABLE_AUTHORITIES = {
 
 def _is_stable(item: ContextItem) -> bool:
     """Return True if the item should be placed in the stable cache prefix."""
+    if item.type in _VOLATILE_TYPES:
+        return False
     if item.type in _STABLE_TYPES:
         return True
     if item.authority in _STABLE_AUTHORITIES:
