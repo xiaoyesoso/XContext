@@ -267,15 +267,17 @@ GET /metrics/{session_id}
 
 ```
 XContext/
-├── README.md
+├── README.md                   # 中文 README（主文件）
+├── README.en.md                # 英文 README
 ├── .env                        # 环境变量配置（不入库）
 ├── .gitignore
-├── docker-compose.yml
+├── docker-compose.yml          # Docker Compose: API + Redis
 ├── AGENTS.md                   # AI 助手项目指南
 ├── backend/
 │   ├── app/
 │   │   ├── main.py             # FastAPI 应用入口
 │   │   ├── models.py           # Pydantic 数据模型
+│   │   ├── db_models.py        # SQLAlchemy ORM 模型
 │   │   ├── config.py           # 环境变量配置
 │   │   ├── dependencies.py     # 依赖注入
 │   │   ├── api/                # RESTful 路由
@@ -305,15 +307,24 @@ XContext/
 │   │   └── repositories/       # 存储仓库
 │   │       ├── base.py         # 仓库抽象基类
 │   │       ├── memory.py       # 内存仓库
+│   │       ├── redis_repo.py   # Redis 仓库
+│   │       ├── sql.py          # SQLAlchemy 仓库
 │   │       ├── composite.py    # Redis + SQL 复合仓库
 │   │       └── archive.py      # 文件系统归档仓库
+│   ├── alembic/                # 数据库迁移脚本
+│   │   ├── env.py
+│   │   └── versions/
+│   ├── alembic.ini
 │   ├── tests/
+│   │   ├── conftest.py         # 测试夹具
 │   │   ├── test_api.py         # API 集成测试
 │   │   ├── test_pipeline.py    # 管道单元测试
 │   │   ├── test_dynamic.py     # 动态编排测试（Phase 7）
 │   │   ├── test_layers.py      # 分层管理测试
 │   │   └── test_archive.py     # 归档测试
+│   ├── data/                   # SQLite 数据库目录（Docker 卷）
 │   ├── Dockerfile
+│   ├── .dockerignore
 │   └── requirements.txt
 ├── extra_doc/                  # 外部参考文档（不入库）
 └── openspec/                   # OpenSpec 变更/规格工作区（不入库）

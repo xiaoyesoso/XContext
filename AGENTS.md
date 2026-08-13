@@ -6,18 +6,19 @@ XContext is a Python backend service that implements the unified context-managem
 
 > Context Window = f(Context)
 
-The service exposes RESTful APIs for context ingestion, layered context management, and configurable context-window composition strategies (sliding window, summary-based window, hybrid raw/summary).
+The service exposes RESTful APIs for context ingestion, layered context management, and configurable context-window composition strategies (sliding window, summary-based window, hybrid raw/summary, and dynamic orchestration with budget-mode-aware compression and cache-aware ordering).
 
 ## 2. Tech Stack
 
 - **Language**: Python 3.11+
 - **Web Framework**: FastAPI
 - **Data Validation**: Pydantic v2
-- **Relational Persistence**: SQLAlchemy 2.0 + Alembic (planned)
+- **Relational Persistence**: SQLAlchemy 2.0 + Alembic
 - **Hot Cache**: Redis
 - **Token Estimation**: tiktoken
-- **Async Tasks** (planned): Celery
+- **LLM Integration**: OpenAI SDK-compatible models (SiliconFlow, etc.)
 - **Testing**: pytest + httpx
+- **Containerization**: Docker + Docker Compose
 - **Spec / Design Workflow**: OpenSpec (`openspec` CLI)
 
 ## 3. Development Conventions
@@ -66,22 +67,73 @@ All non-trivial changes MUST go through the OpenSpec workflow:
 
 ```text
 XContext/
-├── AGENTS.md               # This file
-├── .gitignore              # Ignores extra_doc/ and openspec/
-├── backend/                # Python backend service
+├── AGENTS.md                   # This file
+├── README.md                   # Chinese README (main)
+├── README.en.md                # English README
+├── .gitignore                  # Ignores extra_doc/ and openspec/
+├── .env                        # Environment config (NOT tracked)
+├── docker-compose.yml          # Docker Compose: API + Redis
+├── backend/                    # Python backend service
 │   ├── app/
 │   │   ├── __init__.py
-│   │   ├── main.py         # FastAPI application entry
-│   │   ├── models.py       # Pydantic schemas
-│   │   └── engine.py       # Context pipeline engine
+│   │   ├── main.py             # FastAPI application entry
+│   │   ├── models.py           # Pydantic schemas (ContextItem, TaskState, etc.)
+│   │   ├── db_models.py        # SQLAlchemy ORM models
+│   │   ├── config.py           # Environment configuration (pydantic-settings)
+│   │   ├── dependencies.py     # Dependency injection
+│   │   ├── api/                # RESTful routes
+│   │   │   ├── health.py
+│   │   │   ├── items.py
+│   │   │   ├── windows.py
+│   │   │   ├── layers.py
+│   │   │   ├── metrics.py
+│   │   │   └── archive.py
+│   │   ├── core/               # Core engine
+│   │   │   ├── engine.py       # ContextEngine pipeline orchestration
+│   │   │   ├── pipeline.py     # Pipeline stage ABCs and base implementations
+│   │   │   ├── budget.py       # BudgetModeResolver (Full/Balanced/Compact/Minimal)
+│   │   │   ├── compression.py  # DynamicCompressor L0-L4
+│   │   │   ├── ordering.py     # CacheAwareOrderer
+│   │   │   ├── selectors.py    # Dynamic/Retrieval/Model selectors
+│   │   │   ├── failure_history.py  # Failure history tracker
+│   │   │   ├── layers.py       # LayerManager
+│   │   │   ├── summarizer.py   # Summarizer (Mock)
+│   │   │   ├── llm.py          # OpenAI-compatible LLM summarizer
+│   │   │   ├── tokenizer.py    # tiktoken token estimation
+│   │   │   ├── metrics.py      # Metrics collector
+│   │   │   ├── database.py     # SQLAlchemy database config
+│   │   │   └── logging_config.py
+│   │   ├── services/
+│   │   │   └── context_service.py  # Application service layer
+│   │   └── repositories/       # Storage repositories
+│   │       ├── base.py         # Repository ABC
+│   │       ├── memory.py       # In-memory repository
+│   │       ├── redis_repo.py   # Redis repository
+│   │       ├── sql.py          # SQLAlchemy repository
+│   │       ├── composite.py    # Redis + SQL composite repository
+│   │       └── archive.py      # Filesystem archive repository
+│   ├── alembic/                # Database migration scripts
+│   │   ├── env.py
+│   │   └── versions/
+│   ├── alembic.ini
+│   ├── tests/
+│   │   ├── conftest.py         # Test fixtures
+│   │   ├── test_api.py         # API integration tests
+│   │   ├── test_pipeline.py    # Pipeline unit tests
+│   │   ├── test_dynamic.py     # Dynamic orchestration tests (Phase 7)
+│   │   ├── test_layers.py      # Layer management tests
+│   │   └── test_archive.py     # Archive tests
+│   ├── data/                   # SQLite database directory (Docker volume)
+│   ├── Dockerfile
+│   ├── .dockerignore
 │   └── requirements.txt
-├── extra_doc/              # External reference documents (NOT tracked by git)
-└── openspec/               # OpenSpec change/spec workspace (NOT tracked by git)
+├── extra_doc/                  # External reference documents (NOT tracked by git)
+└── openspec/                   # OpenSpec change/spec workspace (NOT tracked by git)
     ├── config.yaml
     └── changes/
         └── context-window-service/
             ├── proposal.md
-            ├── design.md
+            ├── design.md       # System Design Document (SDD)
             ├── tasks.md
             ├── specs/context-api/spec.md
             └── assets/
@@ -91,29 +143,44 @@ XContext/
 
 - Run Python syntax checks:
   ```bash
-  python3 -m py_compile backend/app/*.py
+  python3 -m py_compile backend/app/*.py backend/app/core/*.py
   ```
-- Run the test suite (when available):
+- Run the test suite:
   ```bash
-  cd backend && pytest
+  cd backend && python -m pytest tests/ -v
   ```
 - Validate OpenSpec changes:
   ```bash
   openspec validate --changes <change-name> --json
   ```
 
-## 6. Git and Submission
+Current test coverage: 53 tests passing, covering API integration, pipeline stages, dynamic compression, cache-aware ordering, negative context, failure history, and the 17K budget allocation worked example.
+
+## 6. Docker Deployment
+
+- Build and start all services (API + Redis):
+  ```bash
+  docker compose up -d
+  ```
+- Use real LLM calls (requires `API_KEY` in `.env`):
+  ```bash
+  SUMMARIZER_MODE=real docker compose up -d
+  ```
+- The Dockerfile copies `app/`, `alembic/`, and `alembic.ini`, runs `alembic upgrade head` on startup, and persists SQLite data to a Docker volume.
+
+## 7. Git and Submission
 
 - Do NOT commit `extra_doc/` or `openspec/` to GitHub. They are already listed in `.gitignore`.
+- Do NOT commit `.env` — it contains API keys and model names.
 - Prefer conservative, known-working solutions backed by metrics or local validation.
 - Maintain versioned submission files and a submission history log when the user asks for submissions.
 
-## 7. External APIs and Tools
+## 8. External APIs and Tools
 
-- LLM integration uses OpenAI SDK-compatible models.
+- LLM integration uses OpenAI SDK-compatible models (configured via `.env`).
 - Document processing may use FinixDoc-VL API or OCR tools when required.
 
-## 8. Contact and Context
+## 9. Contact and Context
 
 - User prefers data-driven optimization based on metrics and experimental results.
 - User is proficient in Python and document-processing pipelines.

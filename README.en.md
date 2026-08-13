@@ -271,12 +271,13 @@ XContext/
 ├── README.en.md                # English README
 ├── .env                        # Environment config (not tracked)
 ├── .gitignore
-├── docker-compose.yml
+├── docker-compose.yml          # Docker Compose: API + Redis
 ├── AGENTS.md                   # AI assistant project guide
 ├── backend/
 │   ├── app/
 │   │   ├── main.py             # FastAPI application entry
 │   │   ├── models.py           # Pydantic data models
+│   │   ├── db_models.py        # SQLAlchemy ORM models
 │   │   ├── config.py           # Environment configuration
 │   │   ├── dependencies.py     # Dependency injection
 │   │   ├── api/                # RESTful routes
@@ -306,15 +307,24 @@ XContext/
 │   │   └── repositories/       # Storage repositories
 │   │       ├── base.py         # Repository ABC
 │   │       ├── memory.py       # In-memory repository
+│   │       ├── redis_repo.py   # Redis repository
+│   │       ├── sql.py          # SQLAlchemy repository
 │   │       ├── composite.py    # Redis + SQL composite repository
 │   │       └── archive.py      # Filesystem archive repository
+│   ├── alembic/                # Database migration scripts
+│   │   ├── env.py
+│   │   └── versions/
+│   ├── alembic.ini
 │   ├── tests/
+│   │   ├── conftest.py         # Test fixtures
 │   │   ├── test_api.py         # API integration tests
 │   │   ├── test_pipeline.py    # Pipeline unit tests
 │   │   ├── test_dynamic.py     # Dynamic orchestration tests (Phase 7)
 │   │   ├── test_layers.py      # Layer management tests
 │   │   └── test_archive.py     # Archive tests
+│   ├── data/                   # SQLite database directory (Docker volume)
 │   ├── Dockerfile
+│   ├── .dockerignore
 │   └── requirements.txt
 ├── extra_doc/                  # External reference docs (not tracked)
 └── openspec/                   # OpenSpec change/spec workspace (not tracked)
