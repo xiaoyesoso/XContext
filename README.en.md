@@ -54,6 +54,17 @@ The service decomposes context window construction into five stages: **Retrieve 
 
 Supports configurable promotion/demotion rules, e.g., automatically promoting a confirmed fact from `session` to `long_term`.
 
+### Agent Chat Demo
+
+A Vue 3-based frontend demo (`backend/static/index.html`) is included, wiring up the backend APIs end-to-end:
+
+- **Streaming replies**: Agent responses are pushed token-by-token via SSE (Server-Sent Events) for a typewriter effect
+- **Scripted scenario**: A built-in 5-step customer-service refund script covers Full → Balanced → Compact → Minimal budget modes; clicking a step auto-fills the input and budget parameters
+- **Real-time metrics panel**: The sidebar shows budget mode, retrieve/select/compress/order counts, and a token usage bar
+- **Context item list**: Displays each item's type, authority level, compression level (L0–L4), and token cost
+- **Prompt preview**: Expandable view of the actual context fragment injected into the LLM
+- **Bilingual UI**: Chinese by default, one-click switch to English
+
 ## Tech Stack
 
 - **Language**: Python 3.11+
@@ -226,6 +237,67 @@ GET /metrics/{session_id}
 
 Returns retrieved count, selected count, compressed count, ordered count, total context tokens, window tokens, budget mode, and other metrics.
 
+### Agent Chat
+
+```
+POST /chat          Non-streaming chat (waits for full reply)
+POST /chat/stream   Streaming chat (SSE token-by-token)
+```
+
+**Request body:**
+
+```json
+{
+  "session_id": "my-session",
+  "message": "Hi, I'd like a refund",
+  "strategy": "dynamic",
+  "max_tokens": 4096,
+  "token_budget": {
+    "total": 32000,
+    "reserved": 8000,
+    "remaining": 5000
+  },
+  "scenario": "refund"
+}
+```
+
+> `token_budget.remaining` is optional, used to simulate budget tightening. If omitted, the backend computes `total - reserved`.
+
+**Non-streaming response (`POST /chat`):**
+
+```json
+{
+  "session_id": "my-session",
+  "reply": "Hello! What is your order number?",
+  "items": [...],
+  "prompt_fragment": "...",
+  "total_tokens": 3200,
+  "item_count": 5,
+  "budget_mode": "balanced",
+  "metrics": {...}
+}
+```
+
+**Streaming response (`POST /chat/stream`):**
+
+SSE event sequence:
+
+| Event | Description |
+|-------|-------------|
+| `meta` | Pushed before streaming starts; contains prompt_fragment and budget_mode |
+| `delta` | Incremental reply text (repeated) |
+| `done` | Pushed after streaming completes; contains items and metrics |
+
+```
+data: {"type": "meta", "prompt_fragment": "...", "budget_mode": "full"}
+
+data: {"type": "delta", "content": "Hello"}
+
+data: {"type": "delta", "content": "!"}
+
+data: {"type": "done", "items": [...], "metrics": {...}}
+```
+
 ## Context Item Model
 
 | Field | Type | Description |
@@ -286,7 +358,8 @@ XContext/
 │   │   │   ├── windows.py
 │   │   │   ├── layers.py
 │   │   │   ├── metrics.py
-│   │   │   └── archive.py
+│   │   │   ├── archive.py
+│   │   │   └── chat.py         # Agent chat endpoint (SSE streaming)
 │   │   ├── core/               # Core engine
 │   │   │   ├── engine.py       # ContextEngine pipeline orchestration
 │   │   │   ├── pipeline.py     # Pipeline stage ABCs and base implementations
@@ -311,6 +384,8 @@ XContext/
 │   │       ├── sql.py          # SQLAlchemy repository
 │   │       ├── composite.py    # Redis + SQL composite repository
 │   │       └── archive.py      # Filesystem archive repository
+│   ├── static/                 # Frontend demo (Vue 3 single-file)
+│   │   └── index.html          # Agent chat UI
 │   ├── alembic/                # Database migration scripts
 │   │   ├── env.py
 │   │   └── versions/

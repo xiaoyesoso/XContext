@@ -54,6 +54,17 @@ Window_t = Inject(
 
 支持可配置的晋升/降级规则，例如用户确认事实后自动从 `session` 晋升到 `long_term`。
 
+### Agent 对话 Demo
+
+内置一个基于 Vue 3 的前端 Demo（`backend/static/index.html`），将后端 API 完整串联：
+
+- **流式回复**：Agent 回复通过 SSE（Server-Sent Events）逐 token 推送，实现打字机效果
+- **对话剧本引导**：内置 5 步客服退款场景剧本，覆盖 Full → Balanced → Compact → Minimal 四种预算模式，点击步骤自动填充输入和预算参数
+- **实时指标面板**：右侧侧边栏实时展示预算模式、检索/选择/压缩/排序计数、Token 用量条
+- **上下文项列表**：展示每项的类型、权威级别、压缩级别（L0–L4）、Token 成本
+- **Prompt 预览**：可展开查看实际注入 LLM 的上下文片段
+- **中英文切换**：默认中文，一键切换英文
+
 ## 技术栈
 
 - **语言**：Python 3.11+
@@ -226,6 +237,67 @@ GET /metrics/{session_id}
 
 返回检索数、选择数、压缩数、排序数、上下文总 Token、窗口 Token、预算模式等指标。
 
+### Agent 对话
+
+```
+POST /chat          非流式对话（等待完整回复后返回）
+POST /chat/stream   流式对话（SSE 逐 token 推送）
+```
+
+**请求体：**
+
+```json
+{
+  "session_id": "my-session",
+  "message": "你好，我想退款",
+  "strategy": "dynamic",
+  "max_tokens": 4096,
+  "token_budget": {
+    "total": 32000,
+    "reserved": 8000,
+    "remaining": 5000
+  },
+  "scenario": "refund"
+}
+```
+
+> `token_budget.remaining` 可选，用于模拟预算收紧场景。未提供时后端按 `total - reserved` 计算。
+
+**非流式响应（`POST /chat`）：**
+
+```json
+{
+  "session_id": "my-session",
+  "reply": "您好！请问您的订单号是多少？",
+  "items": [...],
+  "prompt_fragment": "...",
+  "total_tokens": 3200,
+  "item_count": 5,
+  "budget_mode": "balanced",
+  "metrics": {...}
+}
+```
+
+**流式响应（`POST /chat/stream`）：**
+
+SSE 事件序列：
+
+| 事件 | 说明 |
+|------|------|
+| `meta` | 流式开始前推送 prompt_fragment 和 budget_mode |
+| `delta` | 逐块推送回复文本（多次） |
+| `done` | 流式结束后推送 items 和 metrics |
+
+```
+data: {"type": "meta", "prompt_fragment": "...", "budget_mode": "full"}
+
+data: {"type": "delta", "content": "你好"}
+
+data: {"type": "delta", "content": "！"}
+
+data: {"type": "done", "items": [...], "metrics": {...}}
+```
+
 ## 上下文项模型
 
 | 字段 | 类型 | 说明 |
@@ -286,7 +358,8 @@ XContext/
 │   │   │   ├── windows.py
 │   │   │   ├── layers.py
 │   │   │   ├── metrics.py
-│   │   │   └── archive.py
+│   │   │   ├── archive.py
+│   │   │   └── chat.py          # Agent 对话接口（含 SSE 流式）
 │   │   ├── core/               # 核心引擎
 │   │   │   ├── engine.py       # ContextEngine 管道编排
 │   │   │   ├── pipeline.py     # 管道阶段抽象与基础实现
@@ -311,6 +384,8 @@ XContext/
 │   │       ├── sql.py          # SQLAlchemy 仓库
 │   │       ├── composite.py    # Redis + SQL 复合仓库
 │   │       └── archive.py      # 文件系统归档仓库
+│   ├── static/                 # 前端 Demo（Vue 3 单文件）
+│   │   └── index.html          # Agent 对话界面
 │   ├── alembic/                # 数据库迁移脚本
 │   │   ├── env.py
 │   │   └── versions/

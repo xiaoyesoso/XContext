@@ -6,7 +6,7 @@ XContext is a Python backend service that implements the unified context-managem
 
 > Context Window = f(Context)
 
-The service exposes RESTful APIs for context ingestion, layered context management, and configurable context-window composition strategies (sliding window, summary-based window, hybrid raw/summary, and dynamic orchestration with budget-mode-aware compression and cache-aware ordering).
+The service exposes RESTful APIs for context ingestion, layered context management, and configurable context-window composition strategies (sliding window, summary-based window, hybrid raw/summary, and dynamic orchestration with budget-mode-aware compression and cache-aware ordering). It also includes an Agent chat endpoint with SSE streaming and a Vue 3 frontend demo.
 
 ## 2. Tech Stack
 
@@ -87,7 +87,8 @@ XContext/
 │   │   │   ├── windows.py
 │   │   │   ├── layers.py
 │   │   │   ├── metrics.py
-│   │   │   └── archive.py
+│   │   │   ├── archive.py
+│   │   │   └── chat.py         # Agent chat endpoint (SSE streaming)
 │   │   ├── core/               # Core engine
 │   │   │   ├── engine.py       # ContextEngine pipeline orchestration
 │   │   │   ├── pipeline.py     # Pipeline stage ABCs and base implementations
@@ -112,6 +113,8 @@ XContext/
 │   │       ├── sql.py          # SQLAlchemy repository
 │   │       ├── composite.py    # Redis + SQL composite repository
 │   │       └── archive.py      # Filesystem archive repository
+│   ├── static/                 # Frontend demo (Vue 3 single-file)
+│   │   └── index.html          # Agent chat UI
 │   ├── alembic/                # Database migration scripts
 │   │   ├── env.py
 │   │   └── versions/
@@ -166,7 +169,7 @@ Current test coverage: 53 tests passing, covering API integration, pipeline stag
   ```bash
   SUMMARIZER_MODE=real docker compose up -d
   ```
-- The Dockerfile copies `app/`, `alembic/`, and `alembic.ini`, runs `alembic upgrade head` on startup, and persists SQLite data to a Docker volume.
+- The Dockerfile copies `app/`, `static/`, `alembic/`, and `alembic.ini`, runs `alembic upgrade head` on startup, and persists SQLite data to a Docker volume.
 
 ## 7. Git and Submission
 
