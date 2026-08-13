@@ -112,6 +112,25 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .prompt-toggle { cursor: pointer; color: var(--accent); font-size: 12px; user-select: none; }
 .prompt-toggle:hover { text-decoration: underline; }
 
+/* Demo script */
+.script-guide { max-width: 600px; margin: 0 auto; }
+.script-guide h4 { font-size: 14px; color: var(--accent); margin-bottom: 10px; }
+.script-step { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; transition: border-color 0.2s; }
+.script-step:hover { border-color: var(--accent); }
+.script-step .step-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.script-step .step-num { font-size: 11px; background: var(--accent-dim); color: var(--accent); border-radius: 4px; padding: 1px 6px; font-weight: 600; }
+.script-step .step-mode { font-size: 10px; padding: 1px 6px; border-radius: 3px; font-weight: 500; }
+.script-step .step-msg { font-size: 13px; color: var(--text); line-height: 1.4; }
+.script-actions { display: flex; gap: 8px; margin-top: 8px; }
+.script-actions button { font-size: 12px; padding: 4px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); cursor: pointer; transition: all 0.2s; }
+.script-actions button:hover { border-color: var(--accent); color: var(--accent); }
+.script-actions button.primary { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.input-hint { font-size: 11px; color: var(--text-dim); padding: 2px 0 4px; }
+.budget-full { background: rgba(52,199,89,0.15); color: #34c759; }
+.budget-balanced { background: rgba(0,122,255,0.15); color: #007aff; }
+.budget-compact { background: rgba(255,149,0,0.15); color: #ff9500; }
+.budget-minimal { background: rgba(255,59,48,0.15); color: #ff3b30; }
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -130,8 +149,26 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <!-- Chat Area -->
     <div class="chat-area">
       <div class="messages" ref="msgContainer">
-        <div v-if="messages.length === 0" style="text-align:center;color:var(--text-dim);padding:40px 20px;font-size:14px;">
-          Start a conversation to see how XContext dynamically orchestrates the context window.
+        <div v-if="messages.length === 0" style="padding:30px 20px;">
+          <div class="script-guide">
+            <h4>Demo Script — Customer Service Refund</h4>
+            <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px;">
+              Click a step to fill the input, or run the full script automatically.
+              Watch the sidebar to see compression levels change as the token budget tightens.
+            </p>
+            <div class="script-actions" style="margin-bottom:12px;">
+              <button class="primary" @click="runFullScript" :disabled="loading">Run Full Script</button>
+              <button @click="setupConstraint" :disabled="loading">+ Add Refund Policy Constraint</button>
+            </div>
+            <div v-for="(step, idx) in scriptSteps" :key="idx" class="script-step" @click="useScriptStep(idx)">
+              <div class="step-header">
+                <span class="step-num">{{ idx + 1 }}</span>
+                <span class="step-mode" :class="'budget-' + step.mode">{{ step.mode.toUpperCase() }}</span>
+                <span v-if="step.constraint" style="font-size:10px;color:var(--orange);">+ constraint</span>
+              </div>
+              <div class="step-msg">{{ step.message }}</div>
+            </div>
+          </div>
         </div>
         <div v-for="msg in messages" :key="msg.id" :class="['msg', msg.role]">
           <div class="msg-label">{{ msg.role === 'user' ? 'You' : 'Agent' }}</div>
@@ -145,6 +182,18 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
         </div>
       </div>
       <div class="input-area">
+        <div v-if="messages.length > 0" class="input-hint">
+          <a href="#" @click.prevent="showScript = !showScript" style="color:var(--accent);text-decoration:none;">{{ showScript ? 'Hide' : 'Show' }} demo script</a>
+        </div>
+        <div v-if="showScript && messages.length > 0" style="margin-bottom:6px;">
+          <div v-for="(step, idx) in scriptSteps" :key="idx" class="script-step" @click="useScriptStep(idx)" style="padding:6px 8px;margin-bottom:4px;">
+            <div class="step-header">
+              <span class="step-num">{{ idx + 1 }}</span>
+              <span class="step-mode" :class="'budget-' + step.mode">{{ step.mode.toUpperCase() }}</span>
+            </div>
+            <div class="step-msg" style="font-size:12px;">{{ step.message }}</div>
+          </div>
+        </div>
         <div class="input-row">
           <textarea v-model="inputText" @keydown.enter.exact.prevent="send"
                     placeholder="Type a message..." :disabled="loading"></textarea>
@@ -244,6 +293,36 @@ createApp({
     const promptFragment = ref('');
     const promptExpanded = ref(false);
     const msgContainer = ref(null);
+    const showScript = ref(false);
+
+    const scriptSteps = ref([
+      {
+        message: "Hi, I want to return a product I bought last week. The order number is ORD-7842.",
+        mode: "full",
+        budget: { total: 32000, reserved: 8000 },
+      },
+      {
+        message: "The product is a blue wireless headset, purchased 7 days ago for $89.99. Can I get a full refund?",
+        mode: "full",
+        budget: { total: 32000, reserved: 8000 },
+        constraint: true,
+      },
+      {
+        message: "OK so I will get $80.99 back after the 10% restocking fee. How do I ship it back?",
+        mode: "balanced",
+        budget: { total: 16000, remaining: 5000 },
+      },
+      {
+        message: "Can you confirm the restocking fee amount and the refund total?",
+        mode: "compact",
+        budget: { total: 10000, remaining: 1200 },
+      },
+      {
+        message: "Just tell me the final refund amount please.",
+        mode: "minimal",
+        budget: { total: 10000, remaining: 200 },
+      },
+    ]);
 
     const config = ref({
       strategy: 'dynamic',
@@ -261,6 +340,65 @@ createApp({
     function truncate(content, max) {
       const s = typeof content === 'string' ? content : JSON.stringify(content);
       return s.length > max ? s.slice(0, max) + '...' : s;
+    }
+
+    function useScriptStep(idx) {
+      const step = scriptSteps.value[idx];
+      inputText.value = step.message;
+      if (step.budget) {
+        config.value.budget_total = step.budget.total;
+        config.value.budget_reserved = step.budget.reserved || 0;
+      }
+    }
+
+    async function setupConstraint() {
+      try {
+        await fetch('/context/items?session_id=' + sessionId.value, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'constraint',
+            content: 'Refund policy: Items must be returned within 30 days of purchase. Refund amount is full price minus 10% restocking fee. Original payment method required.',
+            source: 'internal',
+            scope: 'current_task',
+            authority: 'hard_rule',
+            priority: 10,
+          }),
+        });
+        messages.value.push({
+          id: Date.now(),
+          role: 'agent',
+          html: '<p style="color:var(--green);">Refund policy constraint added to context.</p>',
+        });
+        scrollToBottom();
+      } catch (err) {
+        messages.value.push({
+          id: Date.now(),
+          role: 'agent',
+          html: `<p style="color:var(--red);">Failed to add constraint: ${err.message}</p>`,
+        });
+      }
+    }
+
+    async function runFullScript() {
+      // Reset session for a clean run.
+      sessionId.value = 'demo-' + Math.random().toString(36).slice(2, 8);
+      messages.value = [];
+      contextItems.value = [];
+      metrics.value = null;
+      promptFragment.value = '';
+
+      for (let i = 0; i < scriptSteps.value.length; i++) {
+        const step = scriptSteps.value[i];
+        // Add constraint before step 2.
+        if (step.constraint) {
+          await setupConstraint();
+          await new Promise(r => setTimeout(r, 300));
+        }
+        useScriptStep(i);
+        await new Promise(r => setTimeout(r, 200));
+        await send();
+      }
     }
 
     function scrollToBottom() {
@@ -339,7 +477,8 @@ createApp({
     return {
       sessionId, messages, inputText, loading, contextItems, metrics,
       promptFragment, promptExpanded, config, tokenBarPct, msgContainer,
-      send, truncate,
+      send, truncate, showScript, scriptSteps,
+      useScriptStep, setupConstraint, runFullScript,
     };
   },
 }).mount('#app');
