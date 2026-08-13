@@ -438,6 +438,7 @@ createApp({
       max_tokens: 4096,
       budget_total: 32000,
       budget_reserved: 8000,
+      budget_remaining: null,
       scenario: '',
     });
 
@@ -461,6 +462,7 @@ createApp({
       if (step.budget) {
         config.value.budget_total = step.budget.total;
         config.value.budget_reserved = step.budget.reserved || 0;
+        config.value.budget_remaining = step.budget.remaining || null;
       }
     }
 
@@ -533,6 +535,7 @@ createApp({
       loading.value = true;
       scrollToBottom();
 
+      let agentIdx = -1;
       try {
         const body = {
           session_id: sessionId.value,
@@ -546,9 +549,12 @@ createApp({
             total: config.value.budget_total,
             reserved: config.value.budget_reserved,
           };
+          if (config.value.budget_remaining !== null) {
+            body.token_budget.remaining = config.value.budget_remaining;
+          }
         }
 
-        const resp = await fetch('/chat', {
+        const resp = await fetch('/chat/stream', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
@@ -559,17 +565,58 @@ createApp({
           throw new Error(err);
         }
 
-        const data = await resp.json();
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
 
-        messages.value.push({
-          id: Date.now() + 1,
-          role: 'agent',
-          html: marked.parse(data.reply),
-        });
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
 
-        contextItems.value = data.items || [];
-        metrics.value = data.metrics || null;
-        promptFragment.value = data.prompt_fragment || '';
+          // Parse complete SSE events separated by blank line.
+          let sepIdx;
+          while ((sepIdx = buffer.indexOf('\n\n')) !== -1) {
+            const rawEvent = buffer.slice(0, sepIdx);
+            buffer = buffer.slice(sepIdx + 2);
+
+            const dataLine = rawEvent.split('\n').find(l => l.startsWith('data: '));
+            if (!dataLine) continue;
+            let event;
+            try { event = JSON.parse(dataLine.slice(6)); } catch { continue; }
+
+            if (event.type === 'meta') {
+              if (event.prompt_fragment) promptFragment.value = event.prompt_fragment;
+            } else if (event.type === 'delta') {
+              if (agentIdx < 0) {
+                agentIdx = messages.value.length;
+                messages.value.push({
+                  id: Date.now() + 1,
+                  role: 'agent',
+                  html: '',
+                  raw: '',
+                });
+                loading.value = false;
+              }
+              const msg = messages.value[agentIdx];
+              msg.raw = (msg.raw || '') + (event.content || '');
+              msg.html = marked.parse(msg.raw);
+              scrollToBottom();
+            } else if (event.type === 'done') {
+              contextItems.value = event.items || [];
+              metrics.value = event.metrics || null;
+            }
+          }
+        }
+
+        // Handle empty responses.
+        if (agentIdx < 0) {
+          messages.value.push({
+            id: Date.now() + 1,
+            role: 'agent',
+            html: '<p style="color:var(--text-dim);">(empty response)</p>',
+          });
+        }
       } catch (err) {
         messages.value.push({
           id: Date.now() + 1,
