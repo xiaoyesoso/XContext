@@ -22,6 +22,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .header h1 { font-size: 16px; font-weight: 600; }
 .header .badge { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: var(--accent-dim); color: var(--accent); }
 .header .session { margin-left: auto; font-size: 12px; color: var(--text-dim); font-family: monospace; }
+.lang-toggle { font-size: 12px; padding: 2px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); cursor: pointer; transition: all 0.2s; }
+.lang-toggle:hover { border-color: var(--accent); color: var(--accent); }
 
 /* Main layout */
 .main { flex: 1; display: flex; overflow: hidden; }
@@ -126,10 +128,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .script-actions button:hover { border-color: var(--accent); color: var(--accent); }
 .script-actions button.primary { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
 .input-hint { font-size: 11px; color: var(--text-dim); padding: 2px 0 4px; }
-.budget-full { background: rgba(52,199,89,0.15); color: #34c759; }
-.budget-balanced { background: rgba(0,122,255,0.15); color: #007aff; }
-.budget-compact { background: rgba(255,149,0,0.15); color: #ff9500; }
-.budget-minimal { background: rgba(255,59,48,0.15); color: #ff3b30; }
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
@@ -143,7 +141,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   <div class="header">
     <h1>XContext Agent Demo</h1>
     <span class="badge">Context Window = f(Context)</span>
-    <span class="session">Session: {{ sessionId }}</span>
+    <button class="lang-toggle" @click="toggleLang">{{ lang === 'zh' ? 'English' : '中文' }}</button>
+    <span class="session">{{ t.session }}: {{ sessionId }}</span>
   </div>
   <div class="main">
     <!-- Chat Area -->
@@ -151,14 +150,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <div class="messages" ref="msgContainer">
         <div v-if="messages.length === 0" style="padding:30px 20px;">
           <div class="script-guide">
-            <h4>Demo Script — Customer Service Refund</h4>
+            <h4>{{ t.scriptTitle }}</h4>
             <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px;">
-              Click a step to fill the input, or run the full script automatically.
-              Watch the sidebar to see compression levels change as the token budget tightens.
+              {{ t.scriptDesc }}
             </p>
             <div class="script-actions" style="margin-bottom:12px;">
-              <button class="primary" @click="runFullScript" :disabled="loading">Run Full Script</button>
-              <button @click="setupConstraint" :disabled="loading">+ Add Refund Policy Constraint</button>
+              <button class="primary" @click="runFullScript" :disabled="loading">{{ t.runFullScript }}</button>
+              <button @click="setupConstraint" :disabled="loading">{{ t.addConstraint }}</button>
             </div>
             <div v-for="(step, idx) in scriptSteps" :key="idx" class="script-step" @click="useScriptStep(idx)">
               <div class="step-header">
@@ -171,11 +169,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
           </div>
         </div>
         <div v-for="msg in messages" :key="msg.id" :class="['msg', msg.role]">
-          <div class="msg-label">{{ msg.role === 'user' ? 'You' : 'Agent' }}</div>
+          <div class="msg-label">{{ msg.role === 'user' ? t.you : t.agent }}</div>
           <div class="msg-bubble" v-html="msg.html"></div>
         </div>
         <div v-if="loading" class="msg agent">
-          <div class="msg-label">Agent</div>
+          <div class="msg-label">{{ t.agent }}</div>
           <div class="msg-bubble">
             <div class="loading-dots"><span></span><span></span><span></span></div>
           </div>
@@ -183,7 +181,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       </div>
       <div class="input-area">
         <div v-if="messages.length > 0" class="input-hint">
-          <a href="#" @click.prevent="showScript = !showScript" style="color:var(--accent);text-decoration:none;">{{ showScript ? 'Hide' : 'Show' }} demo script</a>
+          <a href="#" @click.prevent="showScript = !showScript" style="color:var(--accent);text-decoration:none;">{{ showScript ? t.hideScript : t.showScript }}</a>
         </div>
         <div v-if="showScript && messages.length > 0" style="margin-bottom:6px;">
           <div v-for="(step, idx) in scriptSteps" :key="idx" class="script-step" @click="useScriptStep(idx)" style="padding:6px 8px;margin-bottom:4px;">
@@ -196,8 +194,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
         </div>
         <div class="input-row">
           <textarea v-model="inputText" @keydown.enter.exact.prevent="send"
-                    placeholder="Type a message..." :disabled="loading"></textarea>
-          <button @click="send" :disabled="loading || !inputText.trim()">Send</button>
+                    :placeholder="t.inputPlaceholder" :disabled="loading"></textarea>
+          <button @click="send" :disabled="loading || !inputText.trim()">{{ t.send }}</button>
         </div>
       </div>
     </div>
@@ -205,9 +203,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <div class="sidebar">
       <!-- Config -->
       <div class="sb-section">
-        <h3>Configuration</h3>
+        <h3>{{ t.config }}</h3>
         <div class="form-row">
-          <label>Strategy</label>
+          <label>{{ t.strategy }}</label>
           <select v-model="config.strategy">
             <option value="sliding">Sliding</option>
             <option value="summary">Summary</option>
@@ -216,39 +214,39 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
           </select>
         </div>
         <div class="form-row">
-          <label>Max Tokens</label>
+          <label>{{ t.maxTokens }}</label>
           <input type="range" min="512" max="16384" step="512" v-model.number="config.max_tokens">
           <span class="val">{{ config.max_tokens }}</span>
         </div>
         <template v-if="config.strategy === 'dynamic'">
           <div class="form-row">
-            <label>Budget Total</label>
+            <label>{{ t.budgetTotal }}</label>
             <input type="number" v-model.number="config.budget_total" min="1000" step="1000">
           </div>
           <div class="form-row">
-            <label>Reserved</label>
+            <label>{{ t.reserved }}</label>
             <input type="number" v-model.number="config.budget_reserved" min="0" step="500">
           </div>
         </template>
         <div class="form-row">
-          <label>Scenario</label>
-          <input type="text" v-model="config.scenario" placeholder="e.g. refund">
+          <label>{{ t.scenario }}</label>
+          <input type="text" v-model="config.scenario" :placeholder="t.scenarioPlaceholder">
         </div>
       </div>
       <!-- Metrics -->
       <div class="sb-section" v-if="metrics">
-        <h3>Metrics</h3>
+        <h3>{{ t.metrics }}</h3>
         <div style="margin-bottom:6px;">
           <span class="tag" :class="'budget-' + (metrics.budget_mode || 'full')">{{ (metrics.budget_mode || 'N/A').toUpperCase() }}</span>
         </div>
         <div class="metrics-grid">
-          <div class="metric-card"><div class="metric-val">{{ metrics.retrieved_count }}</div><div class="metric-label">Retrieved</div></div>
-          <div class="metric-card"><div class="metric-val">{{ metrics.selected_count }}</div><div class="metric-label">Selected</div></div>
-          <div class="metric-card"><div class="metric-val">{{ metrics.compressed_count }}</div><div class="metric-label">Compressed</div></div>
-          <div class="metric-card"><div class="metric-val">{{ metrics.ordered_count }}</div><div class="metric-label">Ordered</div></div>
+          <div class="metric-card"><div class="metric-val">{{ metrics.retrieved_count }}</div><div class="metric-label">{{ t.retrieved }}</div></div>
+          <div class="metric-card"><div class="metric-val">{{ metrics.selected_count }}</div><div class="metric-label">{{ t.selected }}</div></div>
+          <div class="metric-card"><div class="metric-val">{{ metrics.compressed_count }}</div><div class="metric-label">{{ t.compressed }}</div></div>
+          <div class="metric-card"><div class="metric-val">{{ metrics.ordered_count }}</div><div class="metric-label">{{ t.ordered }}</div></div>
         </div>
         <div style="margin-top:8px;">
-          <div style="font-size:11px;color:var(--text-dim);margin-bottom:2px;">Window / Context Tokens</div>
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:2px;">{{ t.windowTokens }}</div>
           <div style="font-size:12px;">{{ metrics.window_tokens }} / {{ metrics.total_context_tokens }} tokens</div>
           <div class="token-bar">
             <div class="token-bar-fill" :style="{ width: tokenBarPct + '%' }"></div>
@@ -257,8 +255,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       </div>
       <!-- Context Items -->
       <div class="sb-section">
-        <h3>Context Items ({{ contextItems.length }})</h3>
-        <div v-if="contextItems.length === 0" style="font-size:12px;color:var(--text-dim);">No items yet.</div>
+        <h3>{{ t.contextItems }} ({{ contextItems.length }})</h3>
+        <div v-if="contextItems.length === 0" style="font-size:12px;color:var(--text-dim);">{{ t.noItems }}</div>
         <div v-for="item in contextItems" :key="item.id" class="ctx-item">
           <div class="ctx-header">
             <span class="tag" :class="item.type">{{ item.type }}</span>
@@ -271,9 +269,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       </div>
       <!-- Prompt Preview -->
       <div class="sb-section" v-if="promptFragment">
-        <h3>Prompt Fragment</h3>
+        <h3>{{ t.promptFragment }}</h3>
         <div class="prompt-toggle" @click="promptExpanded = !promptExpanded">
-          {{ promptExpanded ? '▼ Collapse' : '▶ Expand' }} ({{ promptFragment.length }} chars)
+          {{ promptExpanded ? t.collapse : t.expand }} ({{ promptFragment.length }} chars)
         </div>
         <div v-if="promptExpanded" class="prompt-preview">{{ promptFragment }}</div>
       </div>
@@ -282,8 +280,145 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 </div>
 <script>
 const { createApp, ref, nextTick, computed } = Vue;
+
+const i18n = {
+  zh: {
+    session: '会话',
+    you: '你',
+    agent: 'Agent',
+    send: '发送',
+    inputPlaceholder: '输入消息...',
+    config: '配置',
+    strategy: '策略',
+    maxTokens: '最大 Tokens',
+    budgetTotal: '预算总量',
+    reserved: '预留',
+    scenario: '场景',
+    scenarioPlaceholder: '如：refund',
+    metrics: '指标',
+    retrieved: '检索',
+    selected: '选中',
+    compressed: '压缩',
+    ordered: '排序',
+    windowTokens: '窗口 / 上下文 Tokens',
+    contextItems: '上下文项',
+    noItems: '暂无项。',
+    promptFragment: 'Prompt 片段',
+    expand: '▶ 展开',
+    collapse: '▼ 收起',
+    scriptTitle: '对话剧本 — 客服退款场景',
+    scriptDesc: '点击步骤填充输入框，或一键运行完整剧本。观察右侧面板，看压缩级别如何随预算收紧而变化。',
+    runFullScript: '运行完整剧本',
+    addConstraint: '+ 添加退款政策约束',
+    showScript: '显示剧本',
+    hideScript: '隐藏剧本',
+    constraintAdded: '退款政策约束已添加到上下文。',
+    constraintFailed: '添加约束失败：',
+    errorPrefix: '错误：',
+  },
+  en: {
+    session: 'Session',
+    you: 'You',
+    agent: 'Agent',
+    send: 'Send',
+    inputPlaceholder: 'Type a message...',
+    config: 'Configuration',
+    strategy: 'Strategy',
+    maxTokens: 'Max Tokens',
+    budgetTotal: 'Budget Total',
+    reserved: 'Reserved',
+    scenario: 'Scenario',
+    scenarioPlaceholder: 'e.g. refund',
+    metrics: 'Metrics',
+    retrieved: 'Retrieved',
+    selected: 'Selected',
+    compressed: 'Compressed',
+    ordered: 'Ordered',
+    windowTokens: 'Window / Context Tokens',
+    contextItems: 'Context Items',
+    noItems: 'No items yet.',
+    promptFragment: 'Prompt Fragment',
+    expand: '▶ Expand',
+    collapse: '▼ Collapse',
+    scriptTitle: 'Demo Script — Customer Service Refund',
+    scriptDesc: 'Click a step to fill the input, or run the full script automatically. Watch the sidebar to see compression levels change as the token budget tightens.',
+    runFullScript: 'Run Full Script',
+    addConstraint: '+ Add Refund Policy Constraint',
+    showScript: 'Show demo script',
+    hideScript: 'Hide demo script',
+    constraintAdded: 'Refund policy constraint added to context.',
+    constraintFailed: 'Failed to add constraint: ',
+    errorPrefix: 'Error: ',
+  },
+};
+
+const scriptData = {
+  zh: [
+    {
+      message: "你好，我想退一周前买的商品。订单号是 ORD-7842。",
+      mode: "full",
+      budget: { total: 32000, reserved: 8000 },
+    },
+    {
+      message: "商品是蓝色无线耳机，7天前花$89.99买的。能全额退款吗？",
+      mode: "full",
+      budget: { total: 32000, reserved: 8000 },
+      constraint: true,
+    },
+    {
+      message: "好的，扣除10%手续费后我能退回$80.99。怎么寄回去？",
+      mode: "balanced",
+      budget: { total: 16000, remaining: 5000 },
+    },
+    {
+      message: "能确认一下手续费金额和退款总额吗？",
+      mode: "compact",
+      budget: { total: 10000, remaining: 1200 },
+    },
+    {
+      message: "直接告诉我最终退款金额就行。",
+      mode: "minimal",
+      budget: { total: 10000, remaining: 200 },
+    },
+  ],
+  en: [
+    {
+      message: "Hi, I want to return a product I bought last week. The order number is ORD-7842.",
+      mode: "full",
+      budget: { total: 32000, reserved: 8000 },
+    },
+    {
+      message: "The product is a blue wireless headset, purchased 7 days ago for $89.99. Can I get a full refund?",
+      mode: "full",
+      budget: { total: 32000, reserved: 8000 },
+      constraint: true,
+    },
+    {
+      message: "OK so I will get $80.99 back after the 10% restocking fee. How do I ship it back?",
+      mode: "balanced",
+      budget: { total: 16000, remaining: 5000 },
+    },
+    {
+      message: "Can you confirm the restocking fee amount and the refund total?",
+      mode: "compact",
+      budget: { total: 10000, remaining: 1200 },
+    },
+    {
+      message: "Just tell me the final refund amount please.",
+      mode: "minimal",
+      budget: { total: 10000, remaining: 200 },
+    },
+  ],
+};
+
+const constraintContent = {
+  zh: '退款政策：商品须在购买后30天内退回。退款金额为全价减去10%手续费。需使用原支付方式。',
+  en: 'Refund policy: Items must be returned within 30 days of purchase. Refund amount is full price minus 10% restocking fee. Original payment method required.',
+};
+
 createApp({
   setup() {
+    const lang = ref('zh');
     const sessionId = ref('demo-' + Math.random().toString(36).slice(2, 8));
     const messages = ref([]);
     const inputText = ref('');
@@ -295,34 +430,8 @@ createApp({
     const msgContainer = ref(null);
     const showScript = ref(false);
 
-    const scriptSteps = ref([
-      {
-        message: "Hi, I want to return a product I bought last week. The order number is ORD-7842.",
-        mode: "full",
-        budget: { total: 32000, reserved: 8000 },
-      },
-      {
-        message: "The product is a blue wireless headset, purchased 7 days ago for $89.99. Can I get a full refund?",
-        mode: "full",
-        budget: { total: 32000, reserved: 8000 },
-        constraint: true,
-      },
-      {
-        message: "OK so I will get $80.99 back after the 10% restocking fee. How do I ship it back?",
-        mode: "balanced",
-        budget: { total: 16000, remaining: 5000 },
-      },
-      {
-        message: "Can you confirm the restocking fee amount and the refund total?",
-        mode: "compact",
-        budget: { total: 10000, remaining: 1200 },
-      },
-      {
-        message: "Just tell me the final refund amount please.",
-        mode: "minimal",
-        budget: { total: 10000, remaining: 200 },
-      },
-    ]);
+    const t = computed(() => i18n[lang.value]);
+    const scriptSteps = computed(() => scriptData[lang.value]);
 
     const config = ref({
       strategy: 'dynamic',
@@ -336,6 +445,10 @@ createApp({
       if (!metrics.value || !metrics.value.total_context_tokens) return 0;
       return Math.min(100, (metrics.value.window_tokens / metrics.value.total_context_tokens) * 100);
     });
+
+    function toggleLang() {
+      lang.value = lang.value === 'zh' ? 'en' : 'zh';
+    }
 
     function truncate(content, max) {
       const s = typeof content === 'string' ? content : JSON.stringify(content);
@@ -358,7 +471,7 @@ createApp({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'constraint',
-            content: 'Refund policy: Items must be returned within 30 days of purchase. Refund amount is full price minus 10% restocking fee. Original payment method required.',
+            content: constraintContent[lang.value],
             source: 'internal',
             scope: 'current_task',
             authority: 'hard_rule',
@@ -368,20 +481,19 @@ createApp({
         messages.value.push({
           id: Date.now(),
           role: 'agent',
-          html: '<p style="color:var(--green);">Refund policy constraint added to context.</p>',
+          html: '<p style="color:var(--green);">' + t.value.constraintAdded + '</p>',
         });
         scrollToBottom();
       } catch (err) {
         messages.value.push({
           id: Date.now(),
           role: 'agent',
-          html: `<p style="color:var(--red);">Failed to add constraint: ${err.message}</p>`,
+          html: '<p style="color:var(--red);">' + t.value.constraintFailed + err.message + '</p>',
         });
       }
     }
 
     async function runFullScript() {
-      // Reset session for a clean run.
       sessionId.value = 'demo-' + Math.random().toString(36).slice(2, 8);
       messages.value = [];
       contextItems.value = [];
@@ -390,7 +502,6 @@ createApp({
 
       for (let i = 0; i < scriptSteps.value.length; i++) {
         const step = scriptSteps.value[i];
-        // Add constraint before step 2.
         if (step.constraint) {
           await setupConstraint();
           await new Promise(r => setTimeout(r, 300));
@@ -413,7 +524,6 @@ createApp({
       const text = inputText.value.trim();
       if (!text || loading.value) return;
 
-      // Add user message to chat.
       messages.value.push({
         id: Date.now(),
         role: 'user',
@@ -451,14 +561,12 @@ createApp({
 
         const data = await resp.json();
 
-        // Add agent reply to chat.
         messages.value.push({
           id: Date.now() + 1,
           role: 'agent',
           html: marked.parse(data.reply),
         });
 
-        // Update sidebar.
         contextItems.value = data.items || [];
         metrics.value = data.metrics || null;
         promptFragment.value = data.prompt_fragment || '';
@@ -466,7 +574,7 @@ createApp({
         messages.value.push({
           id: Date.now() + 1,
           role: 'agent',
-          html: `<p style="color:var(--red);">Error: ${err.message}</p>`,
+          html: '<p style="color:var(--red);">' + t.value.errorPrefix + err.message + '</p>',
         });
       } finally {
         loading.value = false;
@@ -477,8 +585,8 @@ createApp({
     return {
       sessionId, messages, inputText, loading, contextItems, metrics,
       promptFragment, promptExpanded, config, tokenBarPct, msgContainer,
-      send, truncate, showScript, scriptSteps,
-      useScriptStep, setupConstraint, runFullScript,
+      send, truncate, showScript, scriptSteps, lang, t,
+      useScriptStep, setupConstraint, runFullScript, toggleLang,
     };
   },
 }).mount('#app');
