@@ -1,6 +1,7 @@
 # Directories that should not be uploaded to GitHub
 extra_doc/
 openspec/
+.trae/
 
 # Sensitive environment configuration
 .env
