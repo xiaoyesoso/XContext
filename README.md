@@ -1,5 +1,7 @@
 # XContext — 统一上下文窗口管理服务
 
+[English](./README.en.md) | 简体中文
+
 > **Context Window = f(Context)**
 
 XContext 是一个 Python 后端服务，为 LLM Agent 系统提供统一的上下文管理抽象。它将记忆管理、用户画像、对话历史、工具结果、任务状态等异构上下文统一为标准模型，并通过可配置的管道动态编排上下文窗口。
