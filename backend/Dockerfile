@@ -6,8 +6,9 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code and migration scripts.
+# Copy application code, migration scripts, and frontend demo.
 COPY app/ ./app/
+COPY static/ ./static/
 COPY alembic/ ./alembic/
 COPY alembic.ini .
 

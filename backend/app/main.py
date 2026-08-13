@@ -1,9 +1,13 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import AsyncGenerator
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 
-from app.api import archive, health, items, layers, metrics, windows
+from app.api import archive, chat, health, items, layers, metrics, windows
 from app.core.logging_config import configure_logging, get_logger
 
 configure_logging()
@@ -25,12 +29,31 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# CORS: allow the frontend demo to call the API from the browser.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.include_router(health.router)
 app.include_router(items.router)
 app.include_router(windows.router)
 app.include_router(layers.router)
 app.include_router(metrics.router)
 app.include_router(archive.router)
+app.include_router(chat.router)
+
+# Serve the frontend demo if the static directory exists.
+_static_dir = Path(__file__).resolve().parent.parent / "static"
+if _static_dir.is_dir():
+    app.mount("/static", StaticFiles(directory=str(_static_dir)), name="static")
+
+    @app.get("/", include_in_schema=False)
+    async def root_redirect():
+        return RedirectResponse(url="/static/index.html")
 
 
 if __name__ == "__main__":

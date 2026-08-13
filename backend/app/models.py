@@ -188,3 +188,28 @@ class ContextItemCreateRequest(BaseModel):
     priority: int = 0
     layer: str = "session"
     expires_at: Optional[datetime] = None
+
+
+class ChatRequest(BaseModel):
+    """Request body for the Agent chat endpoint."""
+
+    session_id: str = Field(min_length=1)
+    message: str = Field(min_length=1)
+    strategy: WindowStrategy = WindowStrategy.DYNAMIC
+    max_tokens: int = Field(gt=0, default=4096)
+    task_state: Optional[TaskState] = None
+    token_budget: Optional[TokenBudget] = None
+    scenario: Optional[str] = None
+
+
+class ChatResponse(BaseModel):
+    """Response body for the Agent chat endpoint."""
+
+    session_id: str
+    reply: str
+    items: list[ContextItem]
+    prompt_fragment: str
+    total_tokens: int
+    item_count: int
+    budget_mode: Optional[BudgetMode] = None
+    metrics: Optional[dict] = None

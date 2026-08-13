@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XContext Agent Demo</title>
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+:root {
+  --bg: #0f1117; --surface: #1a1d27; --surface2: #222632; --border: #2d3142;
+  --text: #e4e6eb; --text-dim: #8b8f9e; --accent: #4f8cf7; --accent-dim: #2a5db0;
+  --green: #34d399; --blue: #60a5fa; --orange: #fbbf24; --red: #f87171;
+  --purple: #a78bfa; --cyan: #22d3ee; --pink: #f472b6;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
+#app { display: flex; flex-direction: column; height: 100vh; }
+
+/* Header */
+.header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 20px; display: flex; align-items: center; gap: 12px; }
+.header h1 { font-size: 16px; font-weight: 600; }
+.header .badge { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: var(--accent-dim); color: var(--accent); }
+.header .session { margin-left: auto; font-size: 12px; color: var(--text-dim); font-family: monospace; }
+
+/* Main layout */
+.main { flex: 1; display: flex; overflow: hidden; }
+.chat-area { flex: 1; display: flex; flex-direction: column; }
+.sidebar { width: 400px; background: var(--surface); border-left: 1px solid var(--border); overflow-y: auto; flex-shrink: 0; }
+
+/* Chat messages */
+.messages { flex: 1; overflow-y: auto; padding: 16px; }
+.msg { margin-bottom: 12px; max-width: 80%; }
+.msg.user { margin-left: auto; }
+.msg.agent { margin-right: auto; }
+.msg-bubble { padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.6; }
+.msg.user .msg-bubble { background: var(--accent-dim); color: var(--text); }
+.msg.agent .msg-bubble { background: var(--surface2); color: var(--text); }
+.msg-bubble p { margin-bottom: 6px; }
+.msg-bubble p:last-child { margin-bottom: 0; }
+.msg-bubble code { background: rgba(0,0,0,0.3); padding: 1px 4px; border-radius: 3px; font-size: 13px; }
+.msg-bubble pre { background: rgba(0,0,0,0.3); padding: 8px; border-radius: 6px; overflow-x: auto; margin: 6px 0; }
+.msg-label { font-size: 11px; color: var(--text-dim); margin-bottom: 2px; }
+.msg.user .msg-label { text-align: right; }
+
+/* Loading */
+.loading-dots { display: inline-flex; gap: 4px; }
+.loading-dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--text-dim); animation: bounce 1.2s infinite; }
+.loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+.loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes bounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
+
+/* Input area */
+.input-area { padding: 12px 16px; border-top: 1px solid var(--border); background: var(--surface); }
+.input-row { display: flex; gap: 8px; }
+.input-row textarea { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 10px 12px; font-size: 14px; resize: none; height: 44px; max-height: 120px; font-family: inherit; }
+.input-row textarea:focus { outline: none; border-color: var(--accent); }
+.input-row button { background: var(--accent); color: white; border: none; border-radius: 8px; padding: 0 20px; font-size: 14px; cursor: pointer; font-weight: 500; transition: background 0.2s; }
+.input-row button:hover { background: #6ba0ff; }
+.input-row button:disabled { background: var(--border); cursor: not-allowed; }
+
+/* Sidebar sections */
+.sb-section { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.sb-section h3 { font-size: 12px; text-transform: uppercase; color: var(--text-dim); letter-spacing: 0.5px; margin-bottom: 8px; }
+
+/* Form controls */
+.form-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.form-row label { font-size: 12px; color: var(--text-dim); min-width: 70px; }
+.form-row select, .form-row input { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 4px 8px; font-size: 12px; flex: 1; }
+.form-row select:focus, .form-row input:focus { outline: none; border-color: var(--accent); }
+.form-row input[type="range"] { padding: 0; }
+.form-row .val { font-size: 12px; color: var(--accent); min-width: 40px; text-align: right; font-family: monospace; }
+
+/* Context items */
+.ctx-item { background: var(--surface2); border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; font-size: 12px; }
+.ctx-item .ctx-header { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.ctx-item .ctx-content { color: var(--text-dim); line-height: 1.4; word-break: break-word; }
+.tag { font-size: 10px; padding: 1px 6px; border-radius: 3px; font-weight: 500; white-space: nowrap; }
+.tag.constraint { background: rgba(79,140,247,0.2); color: var(--accent); }
+.tag.fact { background: rgba(52,211,153,0.2); color: var(--green); }
+.tag.tool_result { background: rgba(34,211,238,0.2); color: var(--cyan); }
+.tag.user_input { background: rgba(96,165,250,0.2); color: var(--blue); }
+.tag.model_output { background: rgba(167,139,250,0.2); color: var(--purple); }
+.tag.summary { background: rgba(244,114,182,0.2); color: var(--pink); }
+.tag.profile { background: rgba(251,191,36,0.2); color: var(--orange); }
+.tag.auth-hard_rule { background: rgba(248,113,113,0.15); color: var(--red); }
+.tag.auth-confirmed { background: rgba(52,211,153,0.15); color: var(--green); }
+.tag.auth-inferred { background: rgba(167,139,250,0.15); color: var(--purple); }
+.tag.auth-assumed { background: rgba(139,143,158,0.15); color: var(--text-dim); }
+.tag.auth-denied { background: rgba(248,113,113,0.2); color: var(--red); }
+.tag.comp-l4 { background: rgba(52,211,153,0.2); color: var(--green); }
+.tag.comp-l3 { background: rgba(96,165,250,0.2); color: var(--blue); }
+.tag.comp-l2 { background: rgba(251,191,36,0.2); color: var(--orange); }
+.tag.comp-l1 { background: rgba(251,146,60,0.2); color: #fb923c; }
+.tag.comp-l0 { background: rgba(248,113,113,0.2); color: var(--red); }
+.tag.budget-full { background: rgba(52,211,153,0.2); color: var(--green); }
+.tag.budget-balanced { background: rgba(96,165,250,0.2); color: var(--blue); }
+.tag.budget-compact { background: rgba(251,191,36,0.2); color: var(--orange); }
+.tag.budget-minimal { background: rgba(248,113,113,0.2); color: var(--red); }
+.ctx-meta { display: flex; gap: 4px; margin-left: auto; font-size: 10px; color: var(--text-dim); }
+
+/* Metrics */
+.metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.metric-card { background: var(--surface2); border-radius: 6px; padding: 6px 8px; text-align: center; }
+.metric-card .metric-val { font-size: 18px; font-weight: 600; color: var(--accent); }
+.metric-card .metric-label { font-size: 10px; color: var(--text-dim); }
+.token-bar { background: var(--surface2); border-radius: 4px; height: 8px; margin-top: 4px; overflow: hidden; }
+.token-bar-fill { height: 100%; background: var(--accent); border-radius: 4px; transition: width 0.3s; }
+
+/* Prompt preview */
+.prompt-preview { background: var(--surface2); border-radius: 6px; padding: 8px; font-family: 'SF Mono', monospace; font-size: 11px; color: var(--text-dim); max-height: 200px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; }
+.prompt-toggle { cursor: pointer; color: var(--accent); font-size: 12px; user-select: none; }
+.prompt-toggle:hover { text-decoration: underline; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <h1>XContext Agent Demo</h1>
+    <span class="badge">Context Window = f(Context)</span>
+    <span class="session">Session: {{ sessionId }}</span>
+  </div>
+  <div class="main">
+    <!-- Chat Area -->
+    <div class="chat-area">
+      <div class="messages" ref="msgContainer">
+        <div v-if="messages.length === 0" style="text-align:center;color:var(--text-dim);padding:40px 20px;font-size:14px;">
+          Start a conversation to see how XContext dynamically orchestrates the context window.
+        </div>
+        <div v-for="msg in messages" :key="msg.id" :class="['msg', msg.role]">
+          <div class="msg-label">{{ msg.role === 'user' ? 'You' : 'Agent' }}</div>
+          <div class="msg-bubble" v-html="msg.html"></div>
+        </div>
+        <div v-if="loading" class="msg agent">
+          <div class="msg-label">Agent</div>
+          <div class="msg-bubble">
+            <div class="loading-dots"><span></span><span></span><span></span></div>
+          </div>
+        </div>
+      </div>
+      <div class="input-area">
+        <div class="input-row">
+          <textarea v-model="inputText" @keydown.enter.exact.prevent="send"
+                    placeholder="Type a message..." :disabled="loading"></textarea>
+          <button @click="send" :disabled="loading || !inputText.trim()">Send</button>
+        </div>
+      </div>
+    </div>
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <!-- Config -->
+      <div class="sb-section">
+        <h3>Configuration</h3>
+        <div class="form-row">
+          <label>Strategy</label>
+          <select v-model="config.strategy">
+            <option value="sliding">Sliding</option>
+            <option value="summary">Summary</option>
+            <option value="hybrid">Hybrid</option>
+            <option value="dynamic">Dynamic</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Max Tokens</label>
+          <input type="range" min="512" max="16384" step="512" v-model.number="config.max_tokens">
+          <span class="val">{{ config.max_tokens }}</span>
+        </div>
+        <template v-if="config.strategy === 'dynamic'">
+          <div class="form-row">
+            <label>Budget Total</label>
+            <input type="number" v-model.number="config.budget_total" min="1000" step="1000">
+          </div>
+          <div class="form-row">
+            <label>Reserved</label>
+            <input type="number" v-model.number="config.budget_reserved" min="0" step="500">
+          </div>
+        </template>
+        <div class="form-row">
+          <label>Scenario</label>
+          <input type="text" v-model="config.scenario" placeholder="e.g. refund">
+        </div>
+      </div>
+      <!-- Metrics -->
+      <div class="sb-section" v-if="metrics">
+        <h3>Metrics</h3>
+        <div style="margin-bottom:6px;">
+          <span class="tag" :class="'budget-' + (metrics.budget_mode || 'full')">{{ (metrics.budget_mode || 'N/A').toUpperCase() }}</span>
+        </div>
+        <div class="metrics-grid">
+          <div class="metric-card"><div class="metric-val">{{ metrics.retrieved_count }}</div><div class="metric-label">Retrieved</div></div>
+          <div class="metric-card"><div class="metric-val">{{ metrics.selected_count }}</div><div class="metric-label">Selected</div></div>
+          <div class="metric-card"><div class="metric-val">{{ metrics.compressed_count }}</div><div class="metric-label">Compressed</div></div>
+          <div class="metric-card"><div class="metric-val">{{ metrics.ordered_count }}</div><div class="metric-label">Ordered</div></div>
+        </div>
+        <div style="margin-top:8px;">
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:2px;">Window / Context Tokens</div>
+          <div style="font-size:12px;">{{ metrics.window_tokens }} / {{ metrics.total_context_tokens }} tokens</div>
+          <div class="token-bar">
+            <div class="token-bar-fill" :style="{ width: tokenBarPct + '%' }"></div>
+          </div>
+        </div>
+      </div>
+      <!-- Context Items -->
+      <div class="sb-section">
+        <h3>Context Items ({{ contextItems.length }})</h3>
+        <div v-if="contextItems.length === 0" style="font-size:12px;color:var(--text-dim);">No items yet.</div>
+        <div v-for="item in contextItems" :key="item.id" class="ctx-item">
+          <div class="ctx-header">
+            <span class="tag" :class="item.type">{{ item.type }}</span>
+            <span class="tag" :class="'auth-' + item.authority">{{ item.authority }}</span>
+            <span v-if="item.compression_level" class="tag" :class="'comp-' + item.compression_level">{{ item.compression_level.toUpperCase() }}</span>
+            <span class="ctx-meta">{{ item.token_cost || 0 }} tok</span>
+          </div>
+          <div class="ctx-content">{{ truncate(item.content, 100) }}</div>
+        </div>
+      </div>
+      <!-- Prompt Preview -->
+      <div class="sb-section" v-if="promptFragment">
+        <h3>Prompt Fragment</h3>
+        <div class="prompt-toggle" @click="promptExpanded = !promptExpanded">
+          {{ promptExpanded ? '▼ Collapse' : '▶ Expand' }} ({{ promptFragment.length }} chars)
+        </div>
+        <div v-if="promptExpanded" class="prompt-preview">{{ promptFragment }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const { createApp, ref, nextTick, computed } = Vue;
+createApp({
+  setup() {
+    const sessionId = ref('demo-' + Math.random().toString(36).slice(2, 8));
+    const messages = ref([]);
+    const inputText = ref('');
+    const loading = ref(false);
+    const contextItems = ref([]);
+    const metrics = ref(null);
+    const promptFragment = ref('');
+    const promptExpanded = ref(false);
+    const msgContainer = ref(null);
+
+    const config = ref({
+      strategy: 'dynamic',
+      max_tokens: 4096,
+      budget_total: 32000,
+      budget_reserved: 8000,
+      scenario: '',
+    });
+
+    const tokenBarPct = computed(() => {
+      if (!metrics.value || !metrics.value.total_context_tokens) return 0;
+      return Math.min(100, (metrics.value.window_tokens / metrics.value.total_context_tokens) * 100);
+    });
+
+    function truncate(content, max) {
+      const s = typeof content === 'string' ? content : JSON.stringify(content);
+      return s.length > max ? s.slice(0, max) + '...' : s;
+    }
+
+    function scrollToBottom() {
+      nextTick(() => {
+        if (msgContainer.value) {
+          msgContainer.value.scrollTop = msgContainer.value.scrollHeight;
+        }
+      });
+    }
+
+    async function send() {
+      const text = inputText.value.trim();
+      if (!text || loading.value) return;
+
+      // Add user message to chat.
+      messages.value.push({
+        id: Date.now(),
+        role: 'user',
+        html: marked.parse(text),
+      });
+      inputText.value = '';
+      loading.value = true;
+      scrollToBottom();
+
+      try {
+        const body = {
+          session_id: sessionId.value,
+          message: text,
+          strategy: config.value.strategy,
+          max_tokens: config.value.max_tokens,
+          scenario: config.value.scenario || null,
+        };
+        if (config.value.strategy === 'dynamic') {
+          body.token_budget = {
+            total: config.value.budget_total,
+            reserved: config.value.budget_reserved,
+          };
+        }
+
+        const resp = await fetch('/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+
+        if (!resp.ok) {
+          const err = await resp.text();
+          throw new Error(err);
+        }
+
+        const data = await resp.json();
+
+        // Add agent reply to chat.
+        messages.value.push({
+          id: Date.now() + 1,
+          role: 'agent',
+          html: marked.parse(data.reply),
+        });
+
+        // Update sidebar.
+        contextItems.value = data.items || [];
+        metrics.value = data.metrics || null;
+        promptFragment.value = data.prompt_fragment || '';
+      } catch (err) {
+        messages.value.push({
+          id: Date.now() + 1,
+          role: 'agent',
+          html: `<p style="color:var(--red);">Error: ${err.message}</p>`,
+        });
+      } finally {
+        loading.value = false;
+        scrollToBottom();
+      }
+    }
+
+    return {
+      sessionId, messages, inputText, loading, contextItems, metrics,
+      promptFragment, promptExpanded, config, tokenBarPct, msgContainer,
+      send, truncate,
+    };
+  },
+}).mount('#app');
+</script>
+</body>
+</html>
