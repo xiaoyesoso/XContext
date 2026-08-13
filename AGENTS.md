@@ -6,7 +6,7 @@ XContext is a Python backend service that implements the unified context-managem
 
 > Context Window = f(Context)
 
-The service exposes RESTful APIs for context ingestion, layered context management, and configurable context-window composition strategies (sliding window, summary-based window, hybrid raw/summary, and dynamic orchestration with budget-mode-aware compression and cache-aware ordering). It also includes an Agent chat endpoint with SSE streaming and a Vue 3 frontend demo.
+The service exposes RESTful APIs for context ingestion, layered context management, and configurable context-window composition strategies (sliding window, summary-based window, hybrid raw/summary, and dynamic orchestration with budget-mode-aware compression and cache-aware ordering). It also includes a multi-type summary subsystem (conversation/chapter/key-facts/model-readable summaries), async summary scheduling, detail recall with a K-turn raw window, conflict resolution, and an iterative recall loop driven by LLM sufficiency evaluation. An Agent chat endpoint with SSE streaming and a Vue 3 frontend demo is included.
 
 ## 2. Tech Stack
 
@@ -97,6 +97,12 @@ XContext/
 │   │   │   ├── ordering.py     # CacheAwareOrderer
 │   │   │   ├── selectors.py    # Dynamic/Retrieval/Model selectors
 │   │   │   ├── failure_history.py  # Failure history tracker
+│   │   │   ├── key_facts.py    # KeyFact extractor (6-category classification)
+│   │   │   ├── model_readable.py   # Model-readable high-density compressor
+│   │   │   ├── async_summary.py    # Async summary scheduler (3 trigger modes)
+│   │   │   ├── detail_recall.py    # Detail retriever + K-turn raw window
+│   │   │   ├── conflict_resolution.py  # Conflict resolver (last-write-wins / authority)
+│   │   │   ├── iterative_recall.py # LLM-driven iterative recall loop
 │   │   │   ├── layers.py       # LayerManager
 │   │   │   ├── summarizer.py   # Summarizer (Mock)
 │   │   │   ├── llm.py          # OpenAI-compatible LLM summarizer
@@ -124,6 +130,7 @@ XContext/
 │   │   ├── test_api.py         # API integration tests
 │   │   ├── test_pipeline.py    # Pipeline unit tests
 │   │   ├── test_dynamic.py     # Dynamic orchestration tests (Phase 7)
+│   │   ├── test_summary_recall.py  # Summary & detail recall tests (Phase 8-10)
 │   │   ├── test_layers.py      # Layer management tests
 │   │   └── test_archive.py     # Archive tests
 │   ├── data/                   # SQLite database directory (Docker volume)
@@ -157,7 +164,7 @@ XContext/
   openspec validate --changes <change-name> --json
   ```
 
-Current test coverage: 53 tests passing, covering API integration, pipeline stages, dynamic compression, cache-aware ordering, negative context, failure history, and the 17K budget allocation worked example.
+Current test coverage: 85 tests passing, covering API integration, pipeline stages, dynamic compression, cache-aware ordering, negative context, failure history, the 17K budget allocation worked example, multi-type summary extraction, model-readable compression, async summary scheduling, K-turn raw window eviction/recall, conflict resolution, and iterative recall loops.
 
 ## 6. Docker Deployment
 

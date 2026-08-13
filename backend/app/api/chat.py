@@ -8,6 +8,7 @@ from openai import AsyncOpenAI
 
 from app.config import settings
 from app.dependencies import get_context_service, get_metrics_collector
+from app.core.tokenizer import estimate_item_tokens
 from app.models import (
     ChatRequest,
     ChatResponse,
@@ -88,16 +89,17 @@ async def _ingest_user_message(service, request: ChatRequest) -> None:
 
 async def _store_agent_reply(service, session_id: str, reply: str) -> None:
     """Store the agent reply as a context item."""
-    await service.create_item(
-        session_id,
-        ContextItemCreateRequest(
-            type=ContextType.MODEL_OUTPUT,
-            content=reply,
-            source=ContextSource.AGENT,
-            scope=ContextScope.CURRENT_SESSION,
-            authority=ContextAuthority.INFERRED,
-        ),
+    from app.models import ContextItem
+
+    item = ContextItem(
+        type=ContextType.MODEL_OUTPUT,
+        content=reply,
+        source=ContextSource.AGENT,
+        scope=ContextScope.CURRENT_SESSION,
+        authority=ContextAuthority.INFERRED,
+        token_cost=estimate_item_tokens(reply),
     )
+    await service.create_item_direct(session_id, item)
 
 
 def _collect_metrics(session_id: str) -> dict | None:

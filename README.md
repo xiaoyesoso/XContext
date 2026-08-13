@@ -43,6 +43,16 @@ Window_t = Inject(
 - **失败历史反馈**：记录因缺失上下文导致的任务失败，后续同类任务自动提升相关上下文类型的优先级和最低压缩级别
 - **多模式选择器**：规则选择器（默认）、关键词检索选择器、LLM 模型选择器（默认关闭）
 
+### 摘要与细节召回（Phase 8-10）
+
+- **多类型摘要体系**：对话整体摘要、章节摘要（~20 轮）、关键事实（6 类：目标 / 硬约束 / 软偏好 / 确认-否认事实 / 决策 / 实体）、模型输出摘要、中间结果摘要，按粒度和生命周期分层存储
+- **模型可读摘要**：高密度压缩，删除口语填充词，保留关键语义（目标、实体、事实、约束、决策），由轻量模型生成，显著降低 Token 消耗
+- **异步摘要调度**：支持 end-of-turn、start-of-next-turn、watchdog 三种触发时机，通过 `asyncio.Event` 实现等待完成机制，避免摘要未就绪导致的竞态
+- **K 轮原文窗口**：保留最近 K 轮（默认 K=10）原始上下文，解决摘要与检索库之间的同步延迟问题
+- **混合检索召回**：基于关键词 + 向量的混合检索 + 重排序，从 ES / 向量库召回被压缩掉的细节
+- **冲突裁决**：区分"强化"（互补，保留全部）与"冲突"（矛盾，择优），支持 last-write-wins（最新优先）和 authority precedence（权威优先）两种策略
+- **迭代式细节召回**：LLM 评估上下文充分性 → 主动请求缺失细节 → 召回并合并 → 重试循环，含最大迭代次数和窗口溢出保护
+
 ### 分层上下文管理
 
 | 层级 | 说明 |
@@ -368,6 +378,12 @@ XContext/
 │   │   │   ├── ordering.py     # CacheAwareOrderer 缓存感知排序
 │   │   │   ├── selectors.py    # 动态/检索/模型选择器
 │   │   │   ├── failure_history.py  # 失败历史追踪
+│   │   │   ├── key_facts.py    # 关键事实提取（6 类分类）
+│   │   │   ├── model_readable.py   # 模型可读高密度压缩
+│   │   │   ├── async_summary.py    # 异步摘要调度（3 种触发时机）
+│   │   │   ├── detail_recall.py    # 细节召回 + K 轮原文窗口
+│   │   │   ├── conflict_resolution.py  # 冲突裁决（最新优先/权威优先）
+│   │   │   ├── iterative_recall.py # LLM 驱动的迭代式召回循环
 │   │   │   ├── layers.py       # LayerManager 分层管理
 │   │   │   ├── summarizer.py   # 摘要生成器（Mock）
 │   │   │   ├── llm.py          # OpenAI 兼容 LLM 摘要器
@@ -395,6 +411,7 @@ XContext/
 │   │   ├── test_api.py         # API 集成测试
 │   │   ├── test_pipeline.py    # 管道单元测试
 │   │   ├── test_dynamic.py     # 动态编排测试（Phase 7）
+│   │   ├── test_summary_recall.py  # 摘要与细节召回测试（Phase 8-10）
 │   │   ├── test_layers.py      # 分层管理测试
 │   │   └── test_archive.py     # 归档测试
 │   ├── data/                   # SQLite 数据库目录（Docker 卷）
@@ -424,11 +441,14 @@ python -m pytest tests/ -v
 # 仅运行动态编排测试
 python -m pytest tests/test_dynamic.py -v
 
+# 仅运行摘要与细节召回测试
+python -m pytest tests/test_summary_recall.py -v
+
 # 运行并显示覆盖率
 python -m pytest tests/ --cov=app --cov-report=term-missing
 ```
 
-当前测试覆盖：53 项测试全部通过，涵盖 API 集成、管道各阶段、动态压缩、缓存排序、负向上下文、失败历史、17K 预算分配实战案例等。
+当前测试覆盖：85 项测试全部通过，涵盖 API 集成、管道各阶段、动态压缩、缓存排序、负向上下文、失败历史、17K 预算分配实战案例，以及多类型摘要提取、模型可读压缩、异步摘要调度、K 轮原文窗口驱逐/召回、冲突裁决、迭代式召回循环等。
 
 ## License
 

@@ -15,6 +15,7 @@ from app.core.pipeline import (
 )
 from app.core.selectors import DynamicSelector, RetrievalSelector
 from app.core.summarizer import MockSummarizer, Summarizer
+from app.core.tokenizer import estimate_item_tokens
 from app.models import (
     ComposeRequest,
     ComposeResponse,
@@ -42,6 +43,9 @@ class ContextService:
         self, session_id: str, request: ContextItemCreateRequest
     ) -> ContextItem:
         """Create a new context item in the given session."""
+        content_str = (
+            request.content if isinstance(request.content, str) else str(request.content)
+        )
         item = ContextItem(
             type=request.type,
             content=request.content,
@@ -50,6 +54,7 @@ class ContextService:
             authority=request.authority,
             confidence=request.confidence,
             priority=request.priority,
+            token_cost=estimate_item_tokens(content_str),
             layer=request.layer,
             expires_at=request.expires_at,
         )
