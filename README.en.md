@@ -99,8 +99,20 @@ python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ### Docker Deployment
 
 ```bash
-docker-compose up -d
+# Default: mock summarizer mode, no real API Key needed
+docker compose up -d
+
+# With real LLM calls (requires API_KEY in .env)
+SUMMARIZER_MODE=real docker compose up -d
+
+# View service logs
+docker compose logs -f api
+
+# Stop services
+docker compose down
 ```
+
+Docker Compose automatically starts the API service and Redis, with SQLite database persisted to the `db-data` volume. The service listens on `http://localhost:8000` by default.
 
 ### Run Tests
 

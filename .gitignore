@@ -10,6 +10,7 @@ openspec/
 archive/
 context.db
 *.sqlite3
+backend/data/*.db
 
 # Python cache
 __pycache__/

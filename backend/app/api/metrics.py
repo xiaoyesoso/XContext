@@ -22,5 +22,6 @@ async def get_metrics(session_id: str) -> dict:
         "ordered_count": metrics.ordered_count,
         "total_context_tokens": metrics.total_context_tokens,
         "window_tokens": metrics.window_tokens,
+        "budget_mode": metrics.budget_mode,
         "timestamp": metrics.timestamp.isoformat(),
     }

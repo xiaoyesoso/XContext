@@ -1,0 +1,39 @@
+services:
+  api:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - SUMMARIZER_MODE=${SUMMARIZER_MODE:-mock}
+      - DATABASE_URL=${DATABASE_URL:-sqlite+aiosqlite:///data/context.db}
+      - REDIS_URL=redis://redis:6379/0
+      - API_KEY=${API_KEY:-}
+      - BASE_URL=${BASE_URL:-https://api.siliconflow.cn/v1}
+      - FLASH_LLM_MODEL=${FLASH_LLM_MODEL:-deepseek-ai/DeepSeek-V4-Flash}
+      - PRO_LLM_MODEL=${PRO_LLM_MODEL:-deepseek-ai/DeepSeek-V4-Pro}
+    volumes:
+      - db-data:/app/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  db-data:

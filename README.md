@@ -99,8 +99,20 @@ python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ### Docker 部署
 
 ```bash
-docker-compose up -d
+# 默认使用 mock 摘要模式，无需真实 API Key
+docker compose up -d
+
+# 使用真实 LLM 调用（需在 .env 中配置 API_KEY）
+SUMMARIZER_MODE=real docker compose up -d
+
+# 查看服务日志
+docker compose logs -f api
+
+# 停止服务
+docker compose down
 ```
+
+Docker Compose 会自动启动 API 服务和 Redis，并将 SQLite 数据库持久化到 `db-data` 卷中。服务默认监听 `http://localhost:8000`。
 
 ### 运行测试
 
