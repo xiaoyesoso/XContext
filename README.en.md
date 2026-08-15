@@ -88,7 +88,7 @@ A React 18-based frontend demo (`frontend/index.html`) is included, wiring up th
 
 1. Start the service, then open `http://localhost:8765/` in a browser (redirects to the demo page)
 2. Chat directly in the left-hand input; or click "Show demo script", pick a script, and click a step or "Run Full Script" for a guided tour
-3. Watch the right-hand panels update automatically as the conversation proceeds: in real-LLM mode, background summary/profile tasks finish 10–60 seconds after a turn ends and the panels refresh on their own — no trigger buttons to click
+3. Watch the right-hand panels update automatically as the conversation proceeds: as soon as the agent's reply for a turn completes, summary extraction and profile construction shift to background async processing, and the panels refresh themselves as tasks finish — no trigger buttons to click
 
 ![Main UI with context window panel](docs/images/demo-chat-window.png)
 
