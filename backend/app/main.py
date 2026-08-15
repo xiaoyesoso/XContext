@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api import archive, chat, health, items, layers, metrics, windows
+from app.api import archive, chat, health, items, layers, metrics, profiles, windows
 from app.core.logging_config import configure_logging, get_logger
 
 configure_logging()
@@ -45,6 +45,7 @@ app.include_router(layers.router)
 app.include_router(metrics.router)
 app.include_router(archive.router)
 app.include_router(chat.router)
+app.include_router(profiles.router)
 
 # Serve the frontend demo if the static directory exists.
 _static_dir = Path(__file__).resolve().parent.parent / "static"

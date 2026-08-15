@@ -4,10 +4,12 @@ from app.core.layers import LayerManager
 from app.core.llm import OpenAISummarizer
 from app.core.metrics import MetricsCollector
 from app.core.summarizer import MockSummarizer
+from app.core.user_profile import MockUserProfileExtractor, UserProfileExtractor
 from app.repositories.archive import LocalArchiveRepository
 from app.repositories.base import ContextRepository
 from app.repositories.memory import InMemoryContextRepository
 from app.services.context_service import ContextService
+from app.services.profile_service import UserProfileService
 
 # Global singleton dependencies for the in-memory baseline.
 # Replace with factory/dependency-injection wiring for production persistence.
@@ -28,6 +30,18 @@ _context_service = ContextService(
 )
 _layer_manager = LayerManager()
 _archive_repository = LocalArchiveRepository(base_path="archive")
+
+# User-profile subsystem: mock extractor in mock mode, mirroring the
+# summarizer convention for local dev without API access.
+_profile_extractor = (
+    MockUserProfileExtractor()
+    if os.getenv("SUMMARIZER_MODE", "").lower() == "mock"
+    else UserProfileExtractor()
+)
+_user_profile_service = UserProfileService(
+    extractor=_profile_extractor,
+    metrics_collector=_metrics_collector,
+)
 
 
 def get_context_service() -> ContextService:
@@ -53,3 +67,8 @@ def get_metrics_collector() -> MetricsCollector:
 def get_archive_repository() -> ContextRepository:
     """Return the archive repository instance."""
     return _archive_repository
+
+
+def get_user_profile_service() -> UserProfileService:
+    """Return the user-profile service instance."""
+    return _user_profile_service

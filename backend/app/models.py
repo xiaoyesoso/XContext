@@ -58,6 +58,24 @@ class CompressionLevel(str, Enum):
     L4 = "l4"  # Raw, no compression
 
 
+class ProfileDimension(str, Enum):
+    """Five core user-profile dimensions (Decision 12.1)."""
+
+    GOAL = "goal"                # What does the user want to achieve?
+    CAPABILITY = "capability"    # What can the user understand and do?
+    PREFERENCE = "preference"    # What does the user like and dislike?
+    DECISION = "decision"        # How does the user usually choose?
+    RELATIONSHIP = "relationship"  # Who matters to the user and how?
+
+
+class ProfileTier(str, Enum):
+    """Three-tier e-commerce profile architecture (Decision 12.4)."""
+
+    GLOBAL = "global"                  # Cross-category traits
+    CATEGORY = "category"              # Per product category preferences
+    CURRENT_SHOPPING = "current_shopping"  # This specific purchase context
+
+
 class ContextItem(BaseModel):
     """Unified schema for a single piece of context."""
 
@@ -76,6 +94,8 @@ class ContextItem(BaseModel):
     expires_at: Optional[datetime] = None
     compression_level: Optional[CompressionLevel] = None
     correlation_group: Optional[str] = None
+    profile_dimension: Optional[ProfileDimension] = None
+    profile_tier: Optional[ProfileTier] = None
 
     @field_validator("content", mode="before")
     @classmethod

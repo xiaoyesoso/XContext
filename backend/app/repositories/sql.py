@@ -22,6 +22,8 @@ def _record_to_item(record: ContextItemRecord) -> ContextItem:
         version=record.version,
         created_at=record.created_at,
         expires_at=record.expires_at,
+        profile_dimension=record.profile_dimension,
+        profile_tier=record.profile_tier,
     )
 
 
@@ -42,6 +44,8 @@ def _item_to_record(session_id: str, item: ContextItem) -> ContextItemRecord:
         version=item.version,
         created_at=item.created_at,
         expires_at=item.expires_at,
+        profile_dimension=item.profile_dimension.value if item.profile_dimension else None,
+        profile_tier=item.profile_tier.value if item.profile_tier else None,
     )
 
 

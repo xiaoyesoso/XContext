@@ -6,7 +6,7 @@ XContext is a Python backend service that implements the unified context-managem
 
 > Context Window = f(Context)
 
-The service exposes RESTful APIs for context ingestion, layered context management, and configurable context-window composition strategies (sliding window, summary-based window, hybrid raw/summary, and dynamic orchestration with budget-mode-aware compression and cache-aware ordering). It also includes a multi-type summary subsystem (conversation/chapter/key-facts/model-readable summaries), async summary scheduling, detail recall with a K-turn raw window, conflict resolution, and an iterative recall loop driven by LLM sufficiency evaluation. An Agent chat endpoint with SSE streaming and a Vue 3 frontend demo is included.
+The service exposes RESTful APIs for context ingestion, layered context management, and configurable context-window composition strategies (sliding window, summary-based window, hybrid raw/summary, and dynamic orchestration with budget-mode-aware compression and cache-aware ordering). It also includes a multi-type summary subsystem (conversation/chapter/key-facts/model-readable summaries), async summary scheduling, detail recall with a K-turn raw window, conflict resolution, an iterative recall loop driven by LLM sufficiency evaluation, and a user-profile subsystem (five dimensions, relationship person/event tables, three-tier e-commerce preferences, scenario-aware loading, recommendation specs with acceptable-ad boundaries). An Agent chat endpoint with SSE streaming and a Vue 3 frontend demo is included.
 
 ## 2. Tech Stack
 
@@ -88,6 +88,7 @@ XContext/
 │   │   │   ├── layers.py
 │   │   │   ├── metrics.py
 │   │   │   ├── archive.py
+│   │   │   ├── profiles.py     # User profile endpoints (persons/events/preferences/ads)
 │   │   │   └── chat.py         # Agent chat endpoint (SSE streaming)
 │   │   ├── core/               # Core engine
 │   │   │   ├── engine.py       # ContextEngine pipeline orchestration
@@ -103,6 +104,11 @@ XContext/
 │   │   │   ├── detail_recall.py    # Detail retriever + K-turn raw window
 │   │   │   ├── conflict_resolution.py  # Conflict resolver (last-write-wins / authority)
 │   │   │   ├── iterative_recall.py # LLM-driven iterative recall loop
+│   │   │   ├── user_profile.py     # Five-dimension profile extractor (LLM + Mock)
+│   │   │   ├── relationship_profile.py  # Relationship profiles (person + event tables)
+│   │   │   ├── category_preference.py   # Category prefs + price percentile + sibling fallback
+│   │   │   ├── profile_selector.py      # Scenario-aware profile loading
+│   │   │   ├── recommendation_spec.py   # Recommendation spec + acceptable-ad boundary
 │   │   │   ├── layers.py       # LayerManager
 │   │   │   ├── summarizer.py   # Summarizer (Mock)
 │   │   │   ├── llm.py          # OpenAI-compatible LLM summarizer
@@ -111,7 +117,8 @@ XContext/
 │   │   │   ├── database.py     # SQLAlchemy database config
 │   │   │   └── logging_config.py
 │   │   ├── services/
-│   │   │   └── context_service.py  # Application service layer
+│   │   │   ├── context_service.py  # Application service layer
+│   │   │   └── profile_service.py  # User profile service layer
 │   │   └── repositories/       # Storage repositories
 │   │       ├── base.py         # Repository ABC
 │   │       ├── memory.py       # In-memory repository
@@ -131,6 +138,7 @@ XContext/
 │   │   ├── test_pipeline.py    # Pipeline unit tests
 │   │   ├── test_dynamic.py     # Dynamic orchestration tests (Phase 7)
 │   │   ├── test_summary_recall.py  # Summary & detail recall tests (Phase 8-10)
+│   │   ├── test_profile.py     # User profile tests (Phase 11)
 │   │   ├── test_layers.py      # Layer management tests
 │   │   └── test_archive.py     # Archive tests
 │   ├── data/                   # SQLite database directory (Docker volume)
@@ -164,7 +172,7 @@ XContext/
   openspec validate --changes <change-name> --json
   ```
 
-Current test coverage: 85 tests passing, covering API integration, pipeline stages, dynamic compression, cache-aware ordering, negative context, failure history, the 17K budget allocation worked example, multi-type summary extraction, model-readable compression, async summary scheduling, K-turn raw window eviction/recall, conflict resolution, and iterative recall loops.
+Current test coverage: 133 tests passing, covering API integration, pipeline stages, dynamic compression, cache-aware ordering, negative context, failure history, the 17K budget allocation worked example, multi-type summary extraction, model-readable compression, async summary scheduling, K-turn raw window eviction/recall, conflict resolution, iterative recall loops, five-dimension profile extraction, relationship fact/opinion separation with directional attitudes, category price percentile with sibling fallback, scenario-aware loading, spec derivation, and acceptable-ad filtering.
 
 ## 6. Docker Deployment
 

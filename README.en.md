@@ -53,6 +53,15 @@ The service decomposes context window construction into five stages: **Retrieve 
 - **Conflict resolution**: distinguishes "reinforcement" (complementary, keep all) from "conflict" (contradictory, pick one); supports last-write-wins (newest first) and authority precedence strategies
 - **Iterative detail recall**: LLM evaluates context sufficiency → actively requests missing details → recalls and merges → retry loop, with max-iteration cap and window-overflow protection
 
+### User Profile (Phase 11)
+
+- **Five profile dimensions**: goal (what to achieve) / capability (what the user understands) / preference (likes and dislikes) / decision (how the user chooses) / relationship (who matters and how) — profiles are first-class context items flowing through the same pipeline
+- **Explicit dislikes become hard constraints**: content the user explicitly rejects (e.g., "no Xiaomi") is promoted to `hard_rule` high-authority constraint items at injection time
+- **Relationship modeling**: person table + event table; fact/opinion separation (`objective_fact` vs `user_interpretation`); directional attitudes stored independently; event-driven trust updates (`trust↑/↓`) with evidence chains
+- **E-commerce category preferences**: global / category / current-shopping three-tier architecture; order-based price-percentile computation ("this user typically buys in the top 30% price band for electronics"); sibling-category fallback (pants borrows from shirts, confidence ×0.6)
+- **Scenario-aware loading**: only the subset of the profile relevant to the current scenario (refund / recommendation / education / social) is loaded; relationship data loads by mention, preventing profile bloat
+- **Spec-driven recommendation & acceptable ads**: profile + current request derive a structured spec (price range, required features, excluded brands); ads may deviate slightly but must stay within the acceptable boundary (e.g., 300-500 → 240-600; 1200 rejected)
+
 ### Layered Context Management
 
 | Layer | Description |
@@ -308,6 +317,57 @@ data: {"type": "delta", "content": "!"}
 data: {"type": "done", "items": [...], "metrics": {...}}
 ```
 
+### User Profile
+
+```
+GET  /profiles/{user_id}                                Profile summary (persons + preferences)
+POST /profiles/{user_id}/extract                        Extract profile facts from session items (LLM)
+GET  /profiles/{user_id}/dimension/{dimension}          Profile items by dimension (requires session_id)
+GET  /profiles/{user_id}/relationships/persons          List persons
+POST /profiles/{user_id}/relationships/persons          Create/update a person
+GET  /profiles/{user_id}/relationships/events           List events (filterable by person_id)
+POST /profiles/{user_id}/relationships/events           Record a relationship event (auto-updates attitudes)
+POST /profiles/{user_id}/preferences/percentiles        Compute price percentiles from orders (offline)
+GET  /profiles/{user_id}/preferences/{category_id}      List category preferences
+POST /profiles/{user_id}/preferences/{category_id}      Create/update a category preference
+GET  /profiles/{user_id}/preferences/{category_id}/price Price preference (with sibling fallback)
+POST /profiles/{user_id}/recommendation-spec            Derive a recommendation spec
+POST /profiles/{user_id}/acceptable-ads                 Compute acceptable-ad boundary
+POST /profiles/{user_id}/acceptable-ads/check           Check whether an ad candidate is within the boundary
+```
+
+**Extract response example (`POST /profiles/{user_id}/extract`):**
+
+```json
+[
+  {
+    "fact": {
+      "dimension": "preference",
+      "content": "Dislikes brand Xiaomi",
+      "is_dislike": true,
+      "is_hard_requirement": true,
+      "confidence": 0.95
+    },
+    "context_item_id": "76f0540c-..."
+  }
+]
+```
+
+> Profile facts with `is_dislike=true` are stored as constraint items with `authority=hard_rule`, `priority=10`, and treated as hard constraints during window injection.
+
+**Acceptable-ad boundary example (`POST /profiles/{user_id}/acceptable-ads`):**
+
+```json
+{
+  "spec": {"price_range": [300.0, 500.0], "excluded_brands": [], "...": "..."},
+  "min_price": 240.0,
+  "max_price": 600.0,
+  "slack_ratio": 0.2
+}
+```
+
+> With a 300-500 spec and slack 0.2, ads priced within 240-600 are acceptable; 1200 is rejected.
+
 ## Context Item Model
 
 | Field | Type | Description |
@@ -322,6 +382,8 @@ data: {"type": "done", "items": [...], "metrics": {...}}
 | `priority` | int | Priority (higher = more important) |
 | `token_cost` | int | Token cost (auto-estimated) |
 | `layer` | str | Layer name |
+| `profile_dimension` | enum? | Profile dimension: `goal` / `capability` / `preference` / `decision` / `relationship` (profile items only) |
+| `profile_tier` | enum? | Profile tier: `global` / `category` / `current_shopping` (profile items only) |
 | `version` | int | Version number |
 | `compression_level` | enum | Compression level `l0`–`l4` (populated after compression) |
 | `correlation_group` | str | Correlation group ID (for cascading rules) |
@@ -369,6 +431,7 @@ XContext/
 │   │   │   ├── layers.py
 │   │   │   ├── metrics.py
 │   │   │   ├── archive.py
+│   │   │   ├── profiles.py      # User profile endpoints (persons/events/preferences/ads)
 │   │   │   └── chat.py         # Agent chat endpoint (SSE streaming)
 │   │   ├── core/               # Core engine
 │   │   │   ├── engine.py       # ContextEngine pipeline orchestration
@@ -384,6 +447,11 @@ XContext/
 │   │   │   ├── detail_recall.py    # Detail retriever + K-turn raw window
 │   │   │   ├── conflict_resolution.py  # Conflict resolver (last-write-wins / authority)
 │   │   │   ├── iterative_recall.py # LLM-driven iterative recall loop
+│   │   │   ├── user_profile.py     # Five-dimension profile extractor (LLM + Mock)
+│   │   │   ├── relationship_profile.py  # Relationship profiles (person + event tables)
+│   │   │   ├── category_preference.py   # Category prefs + price percentile + sibling fallback
+│   │   │   ├── profile_selector.py      # Scenario-aware profile loading
+│   │   │   ├── recommendation_spec.py   # Recommendation spec + acceptable-ad boundary
 │   │   │   ├── layers.py       # LayerManager
 │   │   │   ├── summarizer.py   # Summarizer (Mock)
 │   │   │   ├── llm.py          # OpenAI-compatible LLM summarizer
@@ -392,7 +460,8 @@ XContext/
 │   │   │   ├── database.py     # SQLAlchemy database config
 │   │   │   └── logging_config.py
 │   │   ├── services/
-│   │   │   └── context_service.py  # Application service layer
+│   │   │   ├── context_service.py  # Application service layer
+│   │   │   └── profile_service.py  # User profile service layer
 │   │   └── repositories/       # Storage repositories
 │   │       ├── base.py         # Repository ABC
 │   │       ├── memory.py       # In-memory repository
@@ -412,6 +481,7 @@ XContext/
 │   │   ├── test_pipeline.py    # Pipeline unit tests
 │   │   ├── test_dynamic.py     # Dynamic orchestration tests (Phase 7)
 │   │   ├── test_summary_recall.py  # Summary & detail recall tests (Phase 8-10)
+│   │   ├── test_profile.py     # User profile tests (Phase 11)
 │   │   ├── test_layers.py      # Layer management tests
 │   │   └── test_archive.py     # Archive tests
 │   ├── data/                   # SQLite database directory (Docker volume)
@@ -444,11 +514,14 @@ python -m pytest tests/test_dynamic.py -v
 # Run only summary & detail recall tests
 python -m pytest tests/test_summary_recall.py -v
 
+# Run only user profile tests
+python -m pytest tests/test_profile.py -v
+
 # Run with coverage
 python -m pytest tests/ --cov=app --cov-report=term-missing
 ```
 
-Current test coverage: 85 tests passing, covering API integration, pipeline stages, dynamic compression, cache-aware ordering, negative context, failure history, the 17K budget allocation worked example, multi-type summary extraction, model-readable compression, async summary scheduling, K-turn raw window eviction/recall, conflict resolution, and iterative recall loops.
+Current test coverage: 133 tests passing, covering API integration, pipeline stages, dynamic compression, cache-aware ordering, negative context, failure history, the 17K budget allocation worked example, multi-type summary extraction, model-readable compression, async summary scheduling, K-turn raw window eviction/recall, conflict resolution, iterative recall loops, five-dimension profile extraction, relationship fact/opinion separation with directional attitudes, category price percentile with sibling fallback, scenario-aware loading, spec derivation, and acceptable-ad filtering.
 
 ## License
 

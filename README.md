@@ -53,6 +53,15 @@ Window_t = Inject(
 - **冲突裁决**：区分"强化"（互补，保留全部）与"冲突"（矛盾，择优），支持 last-write-wins（最新优先）和 authority precedence（权威优先）两种策略
 - **迭代式细节召回**：LLM 评估上下文充分性 → 主动请求缺失细节 → 召回并合并 → 重试循环，含最大迭代次数和窗口溢出保护
 
+### 用户画像（Phase 11）
+
+- **五维画像**：目标（想达成什么）/ 能力（能理解什么）/ 偏好（喜欢讨厌什么）/ 决策（通常怎么选择）/ 关系（谁重要、关系如何），画像作为一等上下文项进入同一管道
+- **显式厌恶转硬约束**：用户明确拒绝的内容（如"不要小米"）自动提升为 `hard_rule` 高权威约束项，注入时按约束处理
+- **关系画像建模**：人物表 + 事件表双结构；事实与观点分离（`objective_fact` vs `user_interpretation`）；态度方向性独立存储；事件驱动信任更新（`trust↑/↓`）并保留证据链
+- **电商品类偏好**：全局 / 品类 / 当前购物三层架构；订单价格百分位计算（"该用户电子品类通常买 top 30% 价格带"）；相似类目 fallback（裤子缺历史时参考上衣，置信度 ×0.6）
+- **场景化加载**：按当前场景（退款 / 推荐 / 教育 / 社交）只加载相关画像子集，关系数据按提及加载，防止画像膨胀撑爆窗口
+- **规格说明与可接受广告**：画像 + 当前请求推导结构化规格（价格区间、必需特性、排除品牌）；广告可小幅偏离规格但须落在可接受边界内（如 300-500 → 240-600，1200 拒绝）
+
 ### 分层上下文管理
 
 | 层级 | 说明 |
@@ -308,6 +317,57 @@ data: {"type": "delta", "content": "！"}
 data: {"type": "done", "items": [...], "metrics": {...}}
 ```
 
+### 用户画像
+
+```
+GET  /profiles/{user_id}                                画像摘要（人物 + 品类偏好）
+POST /profiles/{user_id}/extract                        从会话上下文提取画像事实（LLM）
+GET  /profiles/{user_id}/dimension/{dimension}          按维度查询画像项（需 session_id）
+GET  /profiles/{user_id}/relationships/persons          人物列表
+POST /profiles/{user_id}/relationships/persons          创建/更新人物
+GET  /profiles/{user_id}/relationships/events           事件列表（可按 person_id 过滤）
+POST /profiles/{user_id}/relationships/events           记录关系事件（自动更新态度）
+POST /profiles/{user_id}/preferences/percentiles        订单历史价格百分位计算（离线）
+GET  /profiles/{user_id}/preferences/{category_id}      品类偏好列表
+POST /profiles/{user_id}/preferences/{category_id}      创建/更新品类偏好
+GET  /profiles/{user_id}/preferences/{category_id}/price 价格偏好（含相似类目 fallback）
+POST /profiles/{user_id}/recommendation-spec            推导推荐规格说明
+POST /profiles/{user_id}/acceptable-ads                 计算可接受广告边界
+POST /profiles/{user_id}/acceptable-ads/check           校验广告候选是否在边界内
+```
+
+**画像提取响应示例（`POST /profiles/{user_id}/extract`）：**
+
+```json
+[
+  {
+    "fact": {
+      "dimension": "preference",
+      "content": "不喜欢小米品牌",
+      "is_dislike": true,
+      "is_hard_requirement": true,
+      "confidence": 0.95
+    },
+    "context_item_id": "76f0540c-..."
+  }
+]
+```
+
+> `is_dislike=true` 的画像事实会以 `authority=hard_rule`、`priority=10` 存为约束项，注入窗口时按硬约束处理。
+
+**可接受广告边界示例（`POST /profiles/{user_id}/acceptable-ads`）：**
+
+```json
+{
+  "spec": {"price_range": [300.0, 500.0], "excluded_brands": [], "...": "..."},
+  "min_price": 240.0,
+  "max_price": 600.0,
+  "slack_ratio": 0.2
+}
+```
+
+> 规格区间 300-500、松弛系数 0.2 时，广告价格落在 240-600 内可接受，1200 会被拒绝。
+
 ## 上下文项模型
 
 | 字段 | 类型 | 说明 |
@@ -322,6 +382,8 @@ data: {"type": "done", "items": [...], "metrics": {...}}
 | `priority` | int | 优先级（越高越重要） |
 | `token_cost` | int | Token 成本（自动估算） |
 | `layer` | str | 所在层级 |
+| `profile_dimension` | enum? | 画像维度：`goal` / `capability` / `preference` / `decision` / `relationship`（仅 profile 类型项） |
+| `profile_tier` | enum? | 画像层级：`global` / `category` / `current_shopping`（仅 profile 类型项） |
 | `version` | int | 版本号 |
 | `compression_level` | enum | 压缩级别 `l0`–`l4`（压缩后填充） |
 | `correlation_group` | str | 关联组标识（用于级联规则） |
@@ -369,6 +431,7 @@ XContext/
 │   │   │   ├── layers.py
 │   │   │   ├── metrics.py
 │   │   │   ├── archive.py
+│   │   │   ├── profiles.py      # 用户画像接口（人物/事件/品类偏好/广告）
 │   │   │   └── chat.py          # Agent 对话接口（含 SSE 流式）
 │   │   ├── core/               # 核心引擎
 │   │   │   ├── engine.py       # ContextEngine 管道编排
@@ -384,6 +447,11 @@ XContext/
 │   │   │   ├── detail_recall.py    # 细节召回 + K 轮原文窗口
 │   │   │   ├── conflict_resolution.py  # 冲突裁决（最新优先/权威优先）
 │   │   │   ├── iterative_recall.py # LLM 驱动的迭代式召回循环
+│   │   │   ├── user_profile.py     # 五维画像提取（LLM + Mock）
+│   │   │   ├── relationship_profile.py  # 关系画像（人物表 + 事件表）
+│   │   │   ├── category_preference.py   # 品类偏好 + 价格百分位 + 相似类目
+│   │   │   ├── profile_selector.py      # 场景化画像加载
+│   │   │   ├── recommendation_spec.py   # 推荐规格 + 可接受广告边界
 │   │   │   ├── layers.py       # LayerManager 分层管理
 │   │   │   ├── summarizer.py   # 摘要生成器（Mock）
 │   │   │   ├── llm.py          # OpenAI 兼容 LLM 摘要器
@@ -392,7 +460,8 @@ XContext/
 │   │   │   ├── database.py     # SQLAlchemy 数据库配置
 │   │   │   └── logging_config.py
 │   │   ├── services/
-│   │   │   └── context_service.py  # 应用服务层
+│   │   │   ├── context_service.py  # 应用服务层
+│   │   │   └── profile_service.py  # 用户画像服务层
 │   │   └── repositories/       # 存储仓库
 │   │       ├── base.py         # 仓库抽象基类
 │   │       ├── memory.py       # 内存仓库
@@ -412,6 +481,7 @@ XContext/
 │   │   ├── test_pipeline.py    # 管道单元测试
 │   │   ├── test_dynamic.py     # 动态编排测试（Phase 7）
 │   │   ├── test_summary_recall.py  # 摘要与细节召回测试（Phase 8-10）
+│   │   ├── test_profile.py     # 用户画像测试（Phase 11）
 │   │   ├── test_layers.py      # 分层管理测试
 │   │   └── test_archive.py     # 归档测试
 │   ├── data/                   # SQLite 数据库目录（Docker 卷）
@@ -444,11 +514,14 @@ python -m pytest tests/test_dynamic.py -v
 # 仅运行摘要与细节召回测试
 python -m pytest tests/test_summary_recall.py -v
 
+# 仅运行用户画像测试
+python -m pytest tests/test_profile.py -v
+
 # 运行并显示覆盖率
 python -m pytest tests/ --cov=app --cov-report=term-missing
 ```
 
-当前测试覆盖：85 项测试全部通过，涵盖 API 集成、管道各阶段、动态压缩、缓存排序、负向上下文、失败历史、17K 预算分配实战案例，以及多类型摘要提取、模型可读压缩、异步摘要调度、K 轮原文窗口驱逐/召回、冲突裁决、迭代式召回循环等。
+当前测试覆盖：133 项测试全部通过，涵盖 API 集成、管道各阶段、动态压缩、缓存排序、负向上下文、失败历史、17K 预算分配实战案例，多类型摘要提取、模型可读压缩、异步摘要调度、K 轮原文窗口驱逐/召回、冲突裁决、迭代式召回循环，以及五维画像提取、关系画像事实/观点分离与方向性态度、品类价格百分位与相似类目 fallback、场景化加载、推荐规格推导、可接受广告过滤等。
 
 ## License
 

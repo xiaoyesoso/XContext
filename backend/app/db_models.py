@@ -24,6 +24,8 @@ class ContextItemRecord(Base):
     version = Column(Integer, nullable=False)
     created_at = Column(DateTime, nullable=False)
     expires_at = Column(DateTime, nullable=True)
+    profile_dimension = Column(String, nullable=True)
+    profile_tier = Column(String, nullable=True)
 
     def __repr__(self) -> str:
         return f"<ContextItemRecord id={self.id} session={self.session_id} type={self.type}>"
