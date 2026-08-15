@@ -3,14 +3,15 @@ FROM python:3.12-slim
 WORKDIR /app
 
 # Install dependencies first to leverage Docker cache.
-COPY requirements.txt .
+COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code, migration scripts, and frontend demo.
-COPY app/ ./app/
-COPY static/ ./static/
-COPY alembic/ ./alembic/
-COPY alembic.ini .
+# Build context is the repo root (see docker-compose.yml).
+COPY backend/app/ ./app/
+COPY frontend/ ./frontend/
+COPY backend/alembic/ ./alembic/
+COPY backend/alembic.ini .
 
 # Ensure data directory exists for SQLite persistence.
 RUN mkdir -p /app/data

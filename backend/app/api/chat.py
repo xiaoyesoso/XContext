@@ -7,7 +7,11 @@ from fastapi.responses import StreamingResponse
 from openai import AsyncOpenAI
 
 from app.config import settings
-from app.dependencies import get_context_service, get_metrics_collector
+from app.dependencies import (
+    get_chat_orchestrator,
+    get_context_service,
+    get_metrics_collector,
+)
 from app.core.tokenizer import estimate_item_tokens
 from app.models import (
     ChatRequest,
@@ -127,6 +131,12 @@ async def chat(request: ChatRequest) -> ChatResponse:
     # 1. Store the user message as a context item.
     await _ingest_user_message(service, request)
 
+    # 1.5 Synchronous injection: completed summaries, profile facts, and
+    # keyword-recalled details enter the context before window composition.
+    await get_chat_orchestrator().prepare_turn(
+        request.session_id, request.message, scenario=request.scenario
+    )
+
     # 2. Compose the context window.
     compose_response = await service.compose_window(
         ComposeRequest(
@@ -147,6 +157,11 @@ async def chat(request: ChatRequest) -> ChatResponse:
 
     # 4. Store the agent reply as a context item.
     await _store_agent_reply(service, request.session_id, reply)
+
+    # 4.5 Asynchronous construction at end_of_turn: summary + profile tasks.
+    get_chat_orchestrator().finalize_turn(
+        request.session_id, scenario=request.scenario
+    )
 
     # 5. Collect metrics.
     metrics = _collect_metrics(request.session_id)
@@ -176,6 +191,12 @@ async def chat_stream(request: ChatRequest):
 
     # 1. Store the user message as a context item.
     await _ingest_user_message(service, request)
+
+    # 1.5 Synchronous injection: completed summaries, profile facts, and
+    # keyword-recalled details enter the context before window composition.
+    injection = await get_chat_orchestrator().prepare_turn(
+        request.session_id, request.message, scenario=request.scenario
+    )
 
     # 2. Compose the context window (synchronous, before streaming).
     compose_response = await service.compose_window(
@@ -228,7 +249,13 @@ async def chat_stream(request: ChatRequest):
         # 4. Store the complete agent reply.
         await _store_agent_reply(service, request.session_id, full_reply)
 
-        # 5. Emit the final event with items and metrics.
+        # 4.5 Asynchronous construction at end_of_turn: summary extraction,
+        # profile extraction, and (scenario-aware) spec derivation tasks.
+        get_chat_orchestrator().finalize_turn(
+            request.session_id, scenario=request.scenario
+        )
+
+        # 5. Emit the final event with items, metrics, and injection report.
         items_data = [
             item.model_dump(mode="json") for item in compose_response.items
         ]
@@ -237,6 +264,7 @@ async def chat_stream(request: ChatRequest):
             "items": items_data,
             "metrics": _collect_metrics(request.session_id),
             "budget_mode": _budget_mode_value(compose_response.budget_mode),
+            "injected": injection,
         })
 
     return StreamingResponse(

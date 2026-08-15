@@ -6,11 +6,12 @@ XContext is a Python backend service that implements the unified context-managem
 
 > Context Window = f(Context)
 
-The service exposes RESTful APIs for context ingestion, layered context management, and configurable context-window composition strategies (sliding window, summary-based window, hybrid raw/summary, and dynamic orchestration with budget-mode-aware compression and cache-aware ordering). It also includes a multi-type summary subsystem (conversation/chapter/key-facts/model-readable summaries), async summary scheduling, detail recall with a K-turn raw window, conflict resolution, an iterative recall loop driven by LLM sufficiency evaluation, and a user-profile subsystem (five dimensions, relationship person/event tables, three-tier e-commerce preferences, scenario-aware loading, recommendation specs with acceptable-ad boundaries). An Agent chat endpoint with SSE streaming and a Vue 3 frontend demo is included.
+The service exposes RESTful APIs for context ingestion, layered context management, and configurable context-window composition strategies (sliding window, summary-based window, hybrid raw/summary, and dynamic orchestration with budget-mode-aware compression and cache-aware ordering). It also includes a multi-type summary subsystem (conversation/chapter/key-facts/model-readable summaries), async summary scheduling, detail recall with a K-turn raw window, conflict resolution, an iterative recall loop driven by LLM sufficiency evaluation, and a user-profile subsystem (five dimensions, relationship person/event tables, three-tier e-commerce preferences, scenario-aware loading, recommendation specs with acceptable-ad boundaries). An Agent chat endpoint with SSE streaming and a React frontend demo is included.
 
 ## 2. Tech Stack
 
-- **Language**: Python 3.11+
+- **Backend Language**: Python 3.11+
+- **Frontend Framework**: React 18+
 - **Web Framework**: FastAPI
 - **Data Validation**: Pydantic v2
 - **Relational Persistence**: SQLAlchemy 2.0 + Alembic
@@ -73,6 +74,9 @@ XContext/
 ├── .gitignore                  # Ignores extra_doc/ and openspec/
 ├── .env                        # Environment config (NOT tracked)
 ├── docker-compose.yml          # Docker Compose: API + Redis
+├── .dockerignore               # Docker build excludes (build context is repo root)
+├── frontend/                   # Frontend demo (React 18 single-file)
+│   └── index.html              # Agent chat UI
 ├── backend/                    # Python backend service
 │   ├── app/
 │   │   ├── __init__.py
@@ -126,8 +130,6 @@ XContext/
 │   │       ├── sql.py          # SQLAlchemy repository
 │   │       ├── composite.py    # Redis + SQL composite repository
 │   │       └── archive.py      # Filesystem archive repository
-│   ├── static/                 # Frontend demo (Vue 3 single-file)
-│   │   └── index.html          # Agent chat UI
 │   ├── alembic/                # Database migration scripts
 │   │   ├── env.py
 │   │   └── versions/
@@ -143,7 +145,6 @@ XContext/
 │   │   └── test_archive.py     # Archive tests
 │   ├── data/                   # SQLite database directory (Docker volume)
 │   ├── Dockerfile
-│   ├── .dockerignore
 │   └── requirements.txt
 ├── extra_doc/                  # External reference documents (NOT tracked by git)
 └── openspec/                   # OpenSpec change/spec workspace (NOT tracked by git)
@@ -184,7 +185,7 @@ Current test coverage: 133 tests passing, covering API integration, pipeline sta
   ```bash
   SUMMARIZER_MODE=real docker compose up -d
   ```
-- The Dockerfile copies `app/`, `static/`, `alembic/`, and `alembic.ini`, runs `alembic upgrade head` on startup, and persists SQLite data to a Docker volume.
+- The Docker build context is the repo root (`backend/Dockerfile`); it copies `backend/app/`, `frontend/`, `backend/alembic/`, and `backend/alembic.ini`, runs `alembic upgrade head` on startup, and persists SQLite data to a Docker volume.
 
 ## 7. Git and Submission
 

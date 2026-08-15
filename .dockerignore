@@ -1,0 +1,25 @@
+# Build context is the repo root; exclude everything the image does not need.
+.git/
+.trae/
+.idea/
+.vscode/
+docs/
+extra_doc/
+openspec/
+README.md
+README.en.md
+AGENTS.md
+docker-compose.yml
+
+# Python artifacts
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+backend/.pytest_cache/
+backend/tests/
+backend/archive/
+
+# Local data and secrets
+backend/data/
+backend/*.sqlite3
+.env

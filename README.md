@@ -75,14 +75,26 @@ Window_t = Inject(
 
 ### Agent 对话 Demo
 
-内置一个基于 Vue 3 的前端 Demo（`backend/static/index.html`），将后端 API 完整串联：
+内置一个基于 React 18 的前端 Demo（`frontend/index.html`），将后端 API 完整串联。右侧面板是**对话驱动的观察面板**：摘要提取与画像构造在每轮对话结束时后台自动进行（end_of_turn），摘要、画像事实、召回细节在下一轮开始时同步注入上下文——全程无需手动触发。
 
 - **流式回复**：Agent 回复通过 SSE（Server-Sent Events）逐 token 推送，实现打字机效果
-- **对话剧本引导**：内置 5 步客服退款场景剧本，覆盖 Full → Balanced → Compact → Minimal 四种预算模式，点击步骤自动填充输入和预算参数
-- **实时指标面板**：右侧侧边栏实时展示预算模式、检索/选择/压缩/排序计数、Token 用量条
-- **上下文项列表**：展示每项的类型、权威级别、压缩级别（L0–L4）、Token 成本
-- **Prompt 预览**：可展开查看实际注入 LLM 的上下文片段
+- **对话剧本引导**：内置客服退款 / 手机推荐两套剧本，覆盖 Full → Balanced → Compact → Minimal 四种预算模式，支持一键运行完整剧本
+- **上下文窗口面板**：实时展示预算模式、检索/选择/压缩/排序计数、Token 用量条、分层架构与上下文项列表（类型/权威级别/压缩级别 L0–L4/Token 成本）
+- **摘要与召回面板**：本轮同步注入报告（召回关键词、注入摘要类型、画像项数、召回数）、多类型摘要（每轮自动生成）、后台任务列表（end_of_turn 自动调度）、K 轮原始窗口统计、本轮自动召回结果（含命中关键词）
+- **用户画像面板**：五维画像事实（对话中自动提取，显式厌恶自动转硬约束）、关系画像（人物 + 事件）、品类偏好（三层架构 + 相似类目回退）、推荐规格与可接受广告边界（推荐场景自动推导）
 - **中英文切换**：默认中文，一键切换英文
+
+#### 前端使用指引
+
+1. 启动服务后，浏览器打开 `http://localhost:8765/`（自动跳转到 Demo 页面）
+2. 在左侧输入框直接对话；或点击"显示剧本"选择剧本后，点击步骤填充或"运行完整剧本"自动演示
+3. 对话过程中观察右侧三个面板自动更新：真实 LLM 模式下，对话结束后约 10–60 秒摘要/画像后台任务完成，面板自动刷新，全程无需点击任何触发按钮
+
+![主界面与上下文窗口面板](docs/images/demo-chat-window.png)
+
+![摘要与召回面板：本轮同步注入、自动摘要与后台任务](docs/images/demo-summaries.png)
+
+![用户画像面板：五维画像与推荐规格/广告边界](docs/images/demo-profile.png)
 
 ## 技术栈
 
@@ -417,6 +429,8 @@ XContext/
 ├── .gitignore
 ├── docker-compose.yml          # Docker Compose: API + Redis
 ├── AGENTS.md                   # AI 助手项目指南
+├── frontend/
+│   └── index.html              # 前端 Demo（React 18 单文件，Agent 对话界面）
 ├── backend/
 │   ├── app/
 │   │   ├── main.py             # FastAPI 应用入口
@@ -469,8 +483,6 @@ XContext/
 │   │       ├── sql.py          # SQLAlchemy 仓库
 │   │       ├── composite.py    # Redis + SQL 复合仓库
 │   │       └── archive.py      # 文件系统归档仓库
-│   ├── static/                 # 前端 Demo（Vue 3 单文件）
-│   │   └── index.html          # Agent 对话界面
 │   ├── alembic/                # 数据库迁移脚本
 │   │   ├── env.py
 │   │   └── versions/

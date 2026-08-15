@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import os
 from pathlib import Path
 from typing import AsyncGenerator
 
@@ -7,7 +8,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api import archive, chat, health, items, layers, metrics, profiles, windows
+from app.api import (
+    archive,
+    chat,
+    health,
+    items,
+    layers,
+    metrics,
+    orchestration,
+    profiles,
+    summaries,
+    windows,
+)
 from app.core.logging_config import configure_logging, get_logger
 
 configure_logging()
@@ -46,10 +58,23 @@ app.include_router(metrics.router)
 app.include_router(archive.router)
 app.include_router(chat.router)
 app.include_router(profiles.router)
+app.include_router(summaries.router)
+app.include_router(orchestration.router)
 
-# Serve the frontend demo if the static directory exists.
-_static_dir = Path(__file__).resolve().parent.parent / "static"
-if _static_dir.is_dir():
+# Serve the frontend demo if a static directory exists.
+# Resolution order: STATIC_DIR env override -> repo layout (XContext/frontend)
+# -> container layout (/app/frontend, see Dockerfile).
+_static_candidates = [
+    Path(p)
+    for p in (os.getenv("STATIC_DIR", ""),)
+    if p
+]
+_static_candidates += [
+    Path(__file__).resolve().parent.parent.parent / "frontend",
+    Path(__file__).resolve().parent.parent / "frontend",
+]
+_static_dir = next((p for p in _static_candidates if p.is_dir()), None)
+if _static_dir is not None:
     app.mount("/static", StaticFiles(directory=str(_static_dir)), name="static")
 
     @app.get("/", include_in_schema=False)

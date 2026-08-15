@@ -1,0 +1,1745 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XContext Agent Demo</title>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+:root {
+  --bg: #0f1117; --surface: #1a1d27; --surface2: #222632; --border: #2d3142;
+  --text: #e4e6eb; --text-dim: #8b8f9e; --accent: #4f8cf7; --accent-dim: #2a5db0;
+  --green: #34d399; --blue: #60a5fa; --orange: #fbbf24; --red: #f87171;
+  --purple: #a78bfa; --cyan: #22d3ee; --pink: #f472b6;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
+#root { display: flex; flex-direction: column; height: 100vh; }
+
+/* Header */
+.header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 20px; display: flex; align-items: center; gap: 12px; }
+.header h1 { font-size: 16px; font-weight: 600; }
+.header .badge { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: var(--accent-dim); color: var(--accent); }
+.header .session { margin-left: auto; font-size: 12px; color: var(--text-dim); font-family: monospace; }
+.lang-toggle { font-size: 12px; padding: 2px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); cursor: pointer; transition: all 0.2s; }
+.lang-toggle:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Main layout */
+.main { flex: 1; display: flex; overflow: hidden; }
+.chat-area { flex: 1; display: flex; flex-direction: column; }
+.sidebar { width: 400px; background: var(--surface); border-left: 1px solid var(--border); overflow-y: auto; flex-shrink: 0; }
+
+/* Chat messages */
+.messages { flex: 1; overflow-y: auto; padding: 16px; }
+.msg { margin-bottom: 12px; max-width: 80%; }
+.msg.user { margin-left: auto; }
+.msg.agent { margin-right: auto; }
+.msg-bubble { padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.6; }
+.msg.user .msg-bubble { background: var(--accent-dim); color: var(--text); }
+.msg.agent .msg-bubble { background: var(--surface2); color: var(--text); }
+.msg-bubble p { margin-bottom: 6px; }
+.msg-bubble p:last-child { margin-bottom: 0; }
+.msg-bubble code { background: rgba(0,0,0,0.3); padding: 1px 4px; border-radius: 3px; font-size: 13px; }
+.msg-bubble pre { background: rgba(0,0,0,0.3); padding: 8px; border-radius: 6px; overflow-x: auto; margin: 6px 0; }
+.msg-label { font-size: 11px; color: var(--text-dim); margin-bottom: 2px; }
+.msg.user .msg-label { text-align: right; }
+
+/* Loading */
+.loading-dots { display: inline-flex; gap: 4px; }
+.loading-dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--text-dim); animation: bounce 1.2s infinite; }
+.loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+.loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes bounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
+
+/* Input area */
+.input-area { padding: 12px 16px; border-top: 1px solid var(--border); background: var(--surface); }
+.input-row { display: flex; gap: 8px; }
+.input-row textarea { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 10px 12px; font-size: 14px; resize: none; height: 44px; max-height: 120px; font-family: inherit; }
+.input-row textarea:focus { outline: none; border-color: var(--accent); }
+.input-row button { background: var(--accent); color: white; border: none; border-radius: 8px; padding: 0 20px; font-size: 14px; cursor: pointer; font-weight: 500; transition: background 0.2s; }
+.input-row button:hover { background: #6ba0ff; }
+.input-row button:disabled { background: var(--border); cursor: not-allowed; }
+
+/* Sidebar sections */
+.sb-section { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.sb-section h3 { font-size: 12px; text-transform: uppercase; color: var(--text-dim); letter-spacing: 0.5px; margin-bottom: 8px; }
+
+/* Form controls */
+.form-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.form-row label { font-size: 12px; color: var(--text-dim); min-width: 70px; }
+.form-row select, .form-row input { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 4px 8px; font-size: 12px; flex: 1; }
+.form-row select:focus, .form-row input:focus { outline: none; border-color: var(--accent); }
+.form-row input[type="range"] { padding: 0; }
+.form-row .val { font-size: 12px; color: var(--accent); min-width: 40px; text-align: right; font-family: monospace; }
+
+/* Context items */
+.ctx-item { background: var(--surface2); border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; font-size: 12px; }
+.ctx-item .ctx-header { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.ctx-item .ctx-content { color: var(--text-dim); line-height: 1.4; word-break: break-word; }
+.tag { font-size: 10px; padding: 1px 6px; border-radius: 3px; font-weight: 500; white-space: nowrap; }
+.tag.constraint { background: rgba(79,140,247,0.2); color: var(--accent); }
+.tag.fact { background: rgba(52,211,153,0.2); color: var(--green); }
+.tag.tool_result { background: rgba(34,211,238,0.2); color: var(--cyan); }
+.tag.user_input { background: rgba(96,165,250,0.2); color: var(--blue); }
+.tag.model_output { background: rgba(167,139,250,0.2); color: var(--purple); }
+.tag.summary { background: rgba(244,114,182,0.2); color: var(--pink); }
+.tag.profile { background: rgba(251,191,36,0.2); color: var(--orange); }
+.tag.auth-hard_rule { background: rgba(248,113,113,0.15); color: var(--red); }
+.tag.auth-confirmed { background: rgba(52,211,153,0.15); color: var(--green); }
+.tag.auth-inferred { background: rgba(167,139,250,0.15); color: var(--purple); }
+.tag.auth-assumed { background: rgba(139,143,158,0.15); color: var(--text-dim); }
+.tag.auth-denied { background: rgba(248,113,113,0.2); color: var(--red); }
+.tag.comp-l4 { background: rgba(52,211,153,0.2); color: var(--green); }
+.tag.comp-l3 { background: rgba(96,165,250,0.2); color: var(--blue); }
+.tag.comp-l2 { background: rgba(251,191,36,0.2); color: var(--orange); }
+.tag.comp-l1 { background: rgba(251,146,60,0.2); color: #fb923c; }
+.tag.comp-l0 { background: rgba(248,113,113,0.2); color: var(--red); }
+.tag.budget-full { background: rgba(52,211,153,0.2); color: var(--green); }
+.tag.budget-balanced { background: rgba(96,165,250,0.2); color: var(--blue); }
+.tag.budget-compact { background: rgba(251,191,36,0.2); color: var(--orange); }
+.tag.budget-minimal { background: rgba(248,113,113,0.2); color: var(--red); }
+.ctx-meta { display: flex; gap: 4px; margin-left: auto; font-size: 10px; color: var(--text-dim); }
+
+/* Metrics */
+.metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.metric-card { background: var(--surface2); border-radius: 6px; padding: 6px 8px; text-align: center; }
+.metric-card .metric-val { font-size: 18px; font-weight: 600; color: var(--accent); }
+.metric-card .metric-label { font-size: 10px; color: var(--text-dim); }
+.token-bar { background: var(--surface2); border-radius: 4px; height: 8px; margin-top: 4px; overflow: hidden; }
+.token-bar-fill { height: 100%; background: var(--accent); border-radius: 4px; transition: width 0.3s; }
+
+/* Prompt preview */
+.prompt-preview { background: var(--surface2); border-radius: 6px; padding: 8px; font-family: 'SF Mono', monospace; font-size: 11px; color: var(--text-dim); max-height: 200px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; }
+.prompt-toggle { cursor: pointer; color: var(--accent); font-size: 12px; user-select: none; }
+.prompt-toggle:hover { text-decoration: underline; }
+
+/* Demo script */
+.script-guide { max-width: 600px; margin: 0 auto; }
+.script-guide h4 { font-size: 14px; color: var(--accent); margin-bottom: 10px; }
+.script-step { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; transition: border-color 0.2s; }
+.script-step:hover { border-color: var(--accent); }
+.script-step .step-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.script-step .step-num { font-size: 11px; background: var(--accent-dim); color: var(--accent); border-radius: 4px; padding: 1px 6px; font-weight: 600; }
+.script-step .step-mode { font-size: 10px; padding: 1px 6px; border-radius: 3px; font-weight: 500; }
+.script-step .step-msg { font-size: 13px; color: var(--text); line-height: 1.4; }
+.script-actions { display: flex; gap: 8px; margin-top: 8px; }
+.script-actions button { font-size: 12px; padding: 4px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); cursor: pointer; transition: all 0.2s; }
+.script-actions button:hover { border-color: var(--accent); color: var(--accent); }
+.script-actions button.primary { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.input-hint { font-size: 11px; color: var(--text-dim); padding: 2px 0 4px; }
+
+/* Sidebar tabs */
+.sb-tabs { display: flex; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--surface); z-index: 5; }
+.sb-tab { flex: 1; text-align: center; padding: 10px 0; font-size: 12px; font-weight: 500; color: var(--text-dim); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
+.sb-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.sb-tab:hover { color: var(--text); }
+
+/* Mini buttons */
+.mini-btn { display: inline-block; font-size: 11px; padding: 3px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); cursor: pointer; transition: all 0.2s; margin-right: 6px; margin-bottom: 6px; }
+.mini-btn:hover { border-color: var(--accent); color: var(--accent); }
+.mini-btn.primary { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.mini-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.mini-btn.tiny { font-size: 10px; padding: 1px 7px; margin-right: 0; margin-bottom: 0; }
+
+/* Layer chain */
+.layer-chain { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
+.layer-node { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; font-size: 11px; text-align: center; line-height: 1.3; }
+.layer-node .ln-name { color: var(--accent); font-weight: 600; }
+.layer-node .ln-desc { color: var(--text-dim); font-size: 9px; max-width: 82px; }
+.layer-arrow { color: var(--text-dim); font-size: 12px; }
+.layer-count { font-size: 10px; color: var(--text-dim); margin-bottom: 6px; }
+.item-actions { display: flex; gap: 4px; margin-top: 4px; }
+
+/* Summary cards */
+.sum-type { display: flex; align-items: center; gap: 6px; margin: 10px 0 4px; }
+.sum-type .st-name { font-size: 12px; font-weight: 600; }
+.sum-type .st-tok { font-size: 10px; color: var(--text-dim); font-family: monospace; }
+.sum-content { background: var(--surface2); border-radius: 6px; padding: 8px; font-size: 11px; line-height: 1.5; color: var(--text); max-height: 140px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; }
+.compression-bar { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 11px; color: var(--text-dim); }
+.compression-fill { height: 6px; border-radius: 3px; background: var(--green); }
+.kf-group { margin-bottom: 6px; }
+.kf-row { display: flex; gap: 6px; align-items: baseline; font-size: 11px; margin-bottom: 2px; }
+.kf-cat { font-size: 9px; padding: 1px 5px; border-radius: 3px; white-space: nowrap; background: rgba(34,211,238,0.15); color: var(--cyan); }
+.kf-cat.goal { background: rgba(96,165,250,0.2); color: var(--blue); }
+.kf-cat.hard_constraint { background: rgba(248,113,113,0.2); color: var(--red); }
+.kf-cat.soft_preference { background: rgba(251,191,36,0.2); color: var(--orange); }
+.kf-cat.confirmed_fact { background: rgba(52,211,153,0.2); color: var(--green); }
+.kf-cat.decision { background: rgba(167,139,250,0.2); color: var(--purple); }
+.kf-cat.entity { background: rgba(34,211,238,0.2); color: var(--cyan); }
+
+/* Async tasks */
+.task-item { background: var(--surface2); border-radius: 6px; padding: 6px 8px; margin-bottom: 5px; font-size: 11px; }
+.task-row { display: flex; align-items: center; gap: 6px; }
+.task-state { font-size: 9px; padding: 1px 6px; border-radius: 3px; font-weight: 600; }
+.task-state.pending { background: rgba(251,191,36,0.2); color: var(--orange); }
+.task-state.running { background: rgba(96,165,250,0.2); color: var(--blue); }
+.task-state.completed { background: rgba(52,211,153,0.2); color: var(--green); }
+.task-state.failed { background: rgba(248,113,113,0.2); color: var(--red); }
+.task-trigger { font-size: 9px; color: var(--text-dim); font-family: monospace; }
+.task-result { margin-top: 4px; color: var(--text-dim); max-height: 60px; overflow-y: auto; }
+
+/* K-turn window */
+.kt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 8px 0; }
+.kt-cell { background: var(--surface2); border-radius: 6px; padding: 6px 8px; text-align: center; }
+.kt-cell .kt-val { font-size: 16px; font-weight: 600; color: var(--accent); }
+.kt-cell .kt-lbl { font-size: 10px; color: var(--text-dim); }
+.kt-preview { font-size: 11px; color: var(--text-dim); border-left: 2px solid var(--accent-dim); padding-left: 8px; margin-bottom: 4px; line-height: 1.4; }
+
+/* Recall & iterative */
+.recall-item { background: var(--surface2); border-radius: 6px; padding: 6px 8px; margin-bottom: 5px; font-size: 11px; }
+.recall-score { color: var(--green); font-family: monospace; font-size: 10px; }
+.iter-badge { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px; margin-right: 6px; }
+.iter-badge.sufficient { background: rgba(52,211,153,0.2); color: var(--green); }
+.iter-badge.max_iterations_reached { background: rgba(251,191,36,0.2); color: var(--orange); }
+.iter-badge.window_overflow { background: rgba(248,113,113,0.2); color: var(--red); }
+
+/* Conflict demo */
+.conf-input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 6px 8px; font-size: 11px; margin-bottom: 5px; }
+.conf-input:focus { outline: none; border-color: var(--accent); }
+.conf-winner { background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.4); border-radius: 6px; padding: 6px 8px; font-size: 11px; margin-top: 6px; }
+.conf-dropped { color: var(--text-dim); text-decoration: line-through; font-size: 11px; margin-top: 4px; }
+.dim-group { margin-bottom: 10px; }
+.dim-head { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.dim-tag { font-size: 10px; padding: 1px 8px; border-radius: 10px; font-weight: 600; }
+.dim-tag.goal { background: rgba(79,140,247,0.2); color: var(--accent); }
+.dim-tag.capability { background: rgba(34,211,238,0.2); color: var(--cyan); }
+.dim-tag.preference { background: rgba(244,114,182,0.2); color: var(--pink); }
+.dim-tag.decision { background: rgba(251,191,36,0.2); color: var(--orange); }
+.dim-tag.relationship { background: rgba(52,211,153,0.2); color: var(--green); }
+.dim-count { font-size: 10px; color: var(--text-dim); }
+.fact-item { background: var(--surface2); border-radius: 6px; padding: 5px 8px; margin-bottom: 4px; font-size: 12px; line-height: 1.4; }
+.fact-item .fact-row { display: flex; align-items: flex-start; gap: 6px; }
+.fact-item .fact-text { flex: 1; color: var(--text); word-break: break-word; }
+.badge-dislike { font-size: 9px; padding: 1px 5px; border-radius: 3px; background: rgba(248,113,113,0.25); color: var(--red); white-space: nowrap; font-weight: 600; }
+.badge-hard { font-size: 9px; padding: 1px 5px; border-radius: 3px; background: rgba(251,191,36,0.2); color: var(--orange); white-space: nowrap; }
+.conf-dots { font-size: 9px; color: var(--text-dim); }
+
+/* Relationship cards */
+.person-card { background: var(--surface2); border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; font-size: 12px; }
+.person-card .p-head { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+.person-card .p-name { font-weight: 600; font-size: 13px; }
+.person-card .p-identity { font-size: 10px; color: var(--text-dim); }
+.person-card .p-attitude { color: var(--text-dim); line-height: 1.4; font-size: 11px; }
+.event-card { background: var(--surface2); border-left: 2px solid var(--green); border-radius: 0 8px 8px 0; padding: 6px 10px; margin-bottom: 6px; font-size: 11px; }
+.event-card .e-fact { color: var(--text); line-height: 1.4; }
+.event-card .e-interp { color: var(--text-dim); font-style: italic; }
+.event-card .e-effects { margin-top: 3px; display: flex; gap: 6px; flex-wrap: wrap; }
+.effect-chip { font-size: 9px; padding: 1px 6px; border-radius: 8px; background: rgba(52,211,153,0.15); color: var(--green); }
+
+/* Price bar visualization */
+.price-viz { margin: 8px 0; }
+.price-scale { position: relative; height: 26px; background: var(--surface2); border-radius: 6px; margin-bottom: 14px; }
+.price-acceptable { position: absolute; top: 4px; height: 18px; background: rgba(52,211,153,0.25); border-radius: 4px; }
+.price-spec { position: absolute; top: 8px; height: 10px; background: rgba(79,140,247,0.55); border-radius: 3px; }
+.price-marker { position: absolute; top: -6px; width: 2px; height: 38px; background: var(--orange); }
+.price-marker-label { position: absolute; top: 40px; transform: translateX(-50%); font-size: 9px; color: var(--text-dim); white-space: nowrap; }
+.price-legend { display: flex; gap: 10px; font-size: 10px; color: var(--text-dim); margin-bottom: 4px; }
+.price-legend .dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 3px; vertical-align: middle; }
+.ad-check-row { display: flex; gap: 6px; align-items: center; margin-top: 6px; }
+.ad-check-row input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 4px 8px; font-size: 12px; }
+.ad-check-row input:focus { outline: none; border-color: var(--accent); }
+.ad-result { font-size: 12px; font-weight: 600; }
+.ad-result.ok { color: var(--green); }
+.ad-result.rejected { color: var(--red); }
+.pref-item { display: flex; align-items: center; gap: 6px; background: var(--surface2); border-radius: 6px; padding: 5px 8px; margin-bottom: 4px; font-size: 11px; }
+.pref-item .pref-cat { font-weight: 600; min-width: 52px; }
+.pref-item .pref-val { color: var(--accent); font-family: monospace; }
+.sibling-badge { font-size: 9px; padding: 1px 5px; border-radius: 3px; background: rgba(167,139,250,0.2); color: var(--purple); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+/* @jsxRuntime classic */
+const { useState, useEffect, useRef, useMemo } = React;
+const { createRoot } = ReactDOM;
+
+const i18n = {
+  zh: {
+    session: '会话',
+    you: '你',
+    agent: 'Agent',
+    send: '发送',
+    inputPlaceholder: '输入消息...',
+    config: '配置',
+    strategy: '策略',
+    maxTokens: '最大 Tokens',
+    budgetTotal: '预算总量',
+    reserved: '预留',
+    scenario: '场景',
+    scenarioPlaceholder: '如：refund',
+    metrics: '指标',
+    retrieved: '检索',
+    selected: '选中',
+    compressed: '压缩',
+    ordered: '排序',
+    windowTokens: '窗口 / 上下文 Tokens',
+    contextItems: '上下文项',
+    noItems: '暂无项。',
+    promptFragment: 'Prompt 片段',
+    expand: '▶ 展开',
+    collapse: '▼ 收起',
+    scriptTitle: '对话剧本 — 客服退款场景',
+    scriptTitleRecommend: '对话剧本 — 手机推荐场景（画像）',
+    scriptDesc: '点击步骤填充输入框，或一键运行完整剧本。观察右侧面板，看压缩级别如何随预算收紧而变化。每轮对话结束自动生成摘要，下一轮开始时自动注入。',
+    scriptDescRecommend: '运行剧本后切换到右侧"用户画像"标签：五维画像、关系与推荐规格都在对话过程中自动提取与注入，无需手动触发。',
+    runFullScript: '运行完整剧本',
+    addConstraint: '+ 添加退款政策约束',
+    showScript: '显示剧本',
+    hideScript: '隐藏剧本',
+    constraintAdded: '退款政策约束已添加到上下文。',
+    constraintFailed: '添加约束失败：',
+    errorPrefix: '错误：',
+    tabWindow: '上下文窗口',
+    tabSummaries: '摘要与召回',
+    tabProfile: '用户画像',
+    // Layers & archive
+    layerArchitecture: '分层上下文架构',
+    layerHint: '晋升规则：authority=confirmed 或 priority≥100。每项可晋升到上一层（COPY）或归档到冷存储。',
+    itemsUnit: '项',
+    promote: '晋升 ↑',
+    archiveBtn: '归档',
+    archiveSection: '冷归档区',
+    refreshArchive: '↻ 刷新归档',
+    noArchived: '暂无归档项。点击上下文项的"归档"按钮试试。',
+    // Summaries tab
+    multiSummary: '多类型摘要（每轮自动生成）',
+    multiSummaryDesc: '每轮对话结束（end_of_turn）后台自动生成四类摘要：对话摘要、章节摘要、关键事实（6 类分类）、模型可读压缩；下一轮开始时对话摘要与模型可读摘要自动注入上下文。',
+    noSummary: '发送消息后，摘要在每轮对话结束自动生成（稍候片刻）。',
+    sourceTokens: '原始',
+    compressedTo: '→',
+    sumConversation: '对话摘要',
+    sumChapter: '章节摘要',
+    sumKeyFacts: '关键事实',
+    sumModelReadable: '模型可读摘要',
+    asyncScheduler: '后台任务（end_of_turn 自动调度）',
+    asyncDesc: '每轮对话结束自动调度后台任务：多类型摘要提取、五维画像提取、推荐规格推导（推荐场景），完成后下一轮自动注入。',
+    noTasks: '暂无任务。发送消息后自动调度。',
+    taskKinds: { summary_extract: '多类型摘要', profile_extract: '五维画像', spec_derivation: '推荐规格' },
+    kTurnWindow: 'K 轮原始窗口（自动同步）',
+    kTurnDesc: '最近 K 轮（K=3）对话始终保留原文，每轮开始时自动同步；更早轮次逐出并转检索索引。',
+    totalTurns: '总轮数',
+    keptTurns: '保留轮 (K)',
+    evictedItems: '逐出项',
+    detailRecall: '本轮自动召回（同步注入）',
+    detailRecallDesc: '每轮开始时从用户消息提取关键词，自动召回被逐出 K 轮窗口的细节，并同步注入上下文。',
+    recallHits: '条命中',
+    noRecall: '本轮无召回：消息无关键词，或相关细节仍在 K 轮窗口内。',
+    turnInjection: '本轮同步注入',
+    turnInjectionDesc: '对话过程中同步完成：注入已完成的摘要与画像事实，按关键词召回被逐出细节。',
+    injKeywords: '召回关键词',
+    injSummaries: '注入摘要类型',
+    injProfileItems: '画像项',
+    injRecalls: '召回注入',
+    noneVal: '无',
+    noInjection: '发送消息后，这里展示本轮同步注入的内容。',
+    noTurnData: '发送消息后自动更新。',
+    conflictResolution: '冲突解决',
+    conflictDesc: '召回的新旧细节矛盾时按策略消解：last-write-wins 或权威优先。',
+    conflictOldPh: '旧内容，如：预算是 3000',
+    conflictNewPh: '新内容，如：预算是 5000',
+    resolveBtn: '解决冲突',
+    winner: '胜者',
+    profileExtract: '五维画像（对话中自动提取）',
+    profileExtractDesc: '每轮对话结束后台自动提取画像事实（目标/能力/偏好/决策/关系）；显式厌恶转为硬约束，事实在下一轮开始时注入窗口。',
+    noFacts: '发送消息后，画像事实在对话过程中自动提取（稍候片刻）。',
+    dislike: '厌恶→硬约束',
+    hardReq: '硬性要求',
+    relationships: '关系画像（人物 + 事件）',
+    seedDemoBtn: '✚ 添加演示数据',
+    refresh: '↻ 刷新',
+    noPersons: '暂无人物记录。点击"添加演示数据"创建老王 + 事件。',
+    eventTimeline: '事件时间线（事实 vs 观点分离）',
+    categoryPrefs: '品类偏好（三层架构）',
+    percentileBtn: '计算订单价格百分位',
+    pantsFallbackBtn: '查询裤子价格偏好（相似类目）',
+    noPrefs: '暂无品类偏好。',
+    sibling: '相似类目',
+    specAds: '推荐规格与可接受广告（自动推导）',
+    noSpec: '推荐场景（手机推荐剧本）中对话后自动推导生成。',
+    specRange: '规格价格区间',
+    specFeatures: '必需特性',
+    specExcluded: '排除品牌',
+    acceptableRange: '可接受广告区间',
+    boundaryLabel: '边界',
+    adPricePlaceholder: '输入广告价格，如 4800',
+    check: '校验',
+    adAllowed: '在边界内，可投放',
+    adRejected: '超出边界，拒绝',
+    scriptSelector: '剧本：',
+    scriptRefund: '客服退款',
+    scriptRecommend: '手机推荐',
+  },
+  en: {
+    session: 'Session',
+    you: 'You',
+    agent: 'Agent',
+    send: 'Send',
+    inputPlaceholder: 'Type a message...',
+    config: 'Configuration',
+    strategy: 'Strategy',
+    maxTokens: 'Max Tokens',
+    budgetTotal: 'Budget Total',
+    reserved: 'Reserved',
+    scenario: 'Scenario',
+    scenarioPlaceholder: 'e.g. refund',
+    metrics: 'Metrics',
+    retrieved: 'Retrieved',
+    selected: 'Selected',
+    compressed: 'Compressed',
+    ordered: 'Ordered',
+    windowTokens: 'Window / Context Tokens',
+    contextItems: 'Context Items',
+    noItems: 'No items yet.',
+    promptFragment: 'Prompt Fragment',
+    expand: '▶ Expand',
+    collapse: '▼ Collapse',
+    scriptTitle: 'Demo Script — Customer Service Refund',
+    scriptTitleRecommend: 'Demo Script — Phone Recommendation (Profile)',
+    scriptDesc: 'Click a step to fill the input, or run the full script automatically. Watch the sidebar to see compression levels change as the token budget tightens. Summaries are generated automatically at the end of each turn and injected at the start of the next.',
+    scriptDescRecommend: 'After running the script, switch to the "User Profile" tab: five-dimension facts, relationships, and the recommendation spec are extracted and injected automatically during the conversation — no manual triggers.',
+    runFullScript: 'Run Full Script',
+    addConstraint: '+ Add Refund Policy Constraint',
+    showScript: 'Show demo script',
+    hideScript: 'Hide demo script',
+    constraintAdded: 'Refund policy constraint added to context.',
+    constraintFailed: 'Failed to add constraint: ',
+    errorPrefix: 'Error: ',
+    tabWindow: 'Context Window',
+    tabSummaries: 'Summaries & Recall',
+    tabProfile: 'User Profile',
+    // Layers & archive
+    layerArchitecture: 'Layered Context',
+    layerHint: 'Promotion rules: authority=confirmed or priority≥100. Each item can be promoted (COPY) to the next layer or archived to cold storage.',
+    itemsUnit: 'items',
+    promote: 'Promote ↑',
+    archiveBtn: 'Archive',
+    archiveSection: 'Cold Archive',
+    refreshArchive: '↻ Refresh archive',
+    noArchived: 'No archived items. Click "Archive" on a context item.',
+    // Summaries tab
+    multiSummary: 'Multi-type Summaries (auto, per turn)',
+    multiSummaryDesc: 'At the end of each turn (end_of_turn) four summary types are generated in the background: conversation, chapter, key facts (6 categories), and model-readable compression; conversation and model-readable summaries are injected automatically at the start of the next turn.',
+    noSummary: 'Send a message — summaries are generated automatically at the end of each turn (may take a moment).',
+    sourceTokens: 'Source',
+    compressedTo: '→',
+    sumConversation: 'Conversation summary',
+    sumChapter: 'Chapter summaries',
+    sumKeyFacts: 'Key facts',
+    sumModelReadable: 'Model-readable summary',
+    asyncScheduler: 'Background Tasks (auto, end_of_turn)',
+    asyncDesc: 'Background tasks are scheduled automatically at the end of each turn: multi-type summary extraction, five-dimension profile extraction, and recommendation spec derivation (recommendation scenario). Results are injected on the next turn.',
+    noTasks: 'No tasks yet. Send a message to schedule them automatically.',
+    taskKinds: { summary_extract: 'Multi-type summaries', profile_extract: 'Five-dim profile', spec_derivation: 'Rec spec' },
+    kTurnWindow: 'K-turn Raw Window (auto-synced)',
+    kTurnDesc: 'The last K turns (K=3) always stay raw in-window, synced automatically at the start of each turn; older turns are evicted into the recall index.',
+    totalTurns: 'Total turns',
+    keptTurns: 'Kept turns (K)',
+    evictedItems: 'Evicted items',
+    detailRecall: 'Auto Recall This Turn (sync injection)',
+    detailRecallDesc: 'At the start of each turn, keywords are extracted from the user message and used to recall details evicted from the K-turn window; hits are injected into the context synchronously.',
+    recallHits: 'hits',
+    noRecall: 'No recalls this turn: no keywords in the message, or the details are still inside the K-turn window.',
+    turnInjection: 'Sync Injection (This Turn)',
+    turnInjectionDesc: 'Done synchronously during the conversation: completed summaries and profile facts are injected, and evicted details are recalled by keyword.',
+    injKeywords: 'Recall keywords',
+    injSummaries: 'Injected summary types',
+    injProfileItems: 'Profile items',
+    injRecalls: 'Recall injections',
+    noneVal: 'none',
+    noInjection: 'Send a message to see this turn\'s sync injections.',
+    noTurnData: 'Updates automatically after you send a message.',
+    conflictResolution: 'Conflict Resolution',
+    conflictDesc: 'When recalled details contradict, resolve by strategy: last-write-wins or authority precedence.',
+    conflictOldPh: 'Old entry, e.g. budget is 3000',
+    conflictNewPh: 'New entry, e.g. budget is 5000',
+    resolveBtn: 'Resolve',
+    winner: 'Winner',
+    profileExtract: 'Five-Dimension Profile (auto, in-conversation)',
+    profileExtractDesc: 'Profile facts (goal/capability/preference/decision/relationship) are extracted in the background at the end of each turn; explicit dislikes become hard constraints, and facts are injected at the start of the next turn.',
+    noFacts: 'Send a message — profile facts are extracted automatically during the conversation (may take a moment).',
+    dislike: 'dislike→hard rule',
+    hardReq: 'hard req',
+    relationships: 'Relationships (persons + events)',
+    seedDemoBtn: '✚ Seed demo data',
+    refresh: '↻ Refresh',
+    noPersons: 'No persons yet. Click "Seed demo data" to create 老王 + an event.',
+    eventTimeline: 'Event timeline (fact vs opinion separated)',
+    categoryPrefs: 'Category Preferences (3-tier)',
+    percentileBtn: 'Compute order price percentiles',
+    pantsFallbackBtn: 'Query pants price pref (sibling)',
+    noPrefs: 'No category preferences yet.',
+    sibling: 'sibling',
+    specAds: 'Recommendation Spec & Acceptable Ads (auto-derived)',
+    noSpec: 'Derived automatically after conversing in the recommendation scenario (phone-recommendation script).',
+    specRange: 'Spec price range',
+    specFeatures: 'Required features',
+    specExcluded: 'Excluded brands',
+    acceptableRange: 'Acceptable ads',
+    boundaryLabel: 'Boundary',
+    adPricePlaceholder: 'Enter ad price, e.g. 4800',
+    check: 'Check',
+    adAllowed: 'within boundary, acceptable',
+    adRejected: 'outside boundary, rejected',
+    scriptSelector: 'Script:',
+    scriptRefund: 'CS Refund',
+    scriptRecommend: 'Phone Rec',
+  },
+};
+
+const scriptData = {
+  refund: {
+    zh: [
+      { message: "你好，我想退一周前买的商品。订单号是 ORD-7842。", mode: "full", budget: { total: 32000, reserved: 8000 } },
+      { message: "商品是蓝色无线耳机，7天前花$89.99买的。能全额退款吗？", mode: "full", budget: { total: 32000, reserved: 8000 }, constraint: true },
+      { message: "好的，扣除10%手续费后我能退回$80.99。怎么寄回去？", mode: "balanced", budget: { total: 16000, remaining: 5000 } },
+      { message: "能确认一下手续费金额和退款总额吗？", mode: "compact", budget: { total: 10000, remaining: 1200 } },
+      { message: "直接告诉我最终退款金额就行。", mode: "minimal", budget: { total: 10000, remaining: 200 } },
+    ],
+    en: [
+      { message: "Hi, I want to return a product I bought last week. The order number is ORD-7842.", mode: "full", budget: { total: 32000, reserved: 8000 } },
+      { message: "The product is a blue wireless headset, purchased 7 days ago for $89.99. Can I get a full refund?", mode: "full", budget: { total: 32000, reserved: 8000 }, constraint: true },
+      { message: "OK so I will get $80.99 back after the 10% restocking fee. How do I ship it back?", mode: "balanced", budget: { total: 16000, remaining: 5000 } },
+      { message: "Can you confirm the restocking fee amount and the refund total?", mode: "compact", budget: { total: 10000, remaining: 1200 } },
+      { message: "Just tell me the final refund amount please.", mode: "minimal", budget: { total: 10000, remaining: 200 } },
+    ],
+  },
+  recommend: {
+    zh: [
+      { message: "我想换一部手机，预算4000以内，拍照要好。不要小米。", mode: "full", budget: { total: 32000, reserved: 8000 } },
+      { message: "我平时打游戏比较多，性能优先，最好直屏、电池大。", mode: "balanced", budget: { total: 20000, remaining: 8000 } },
+      { message: "上一部是iPhone，手表耳机都是苹果的，生态联动对我很重要。", mode: "compact", budget: { total: 12000, remaining: 2000 } },
+      { message: "帮我整理一份规格清单，顺便看看哪些广告商品是可以接受的。", mode: "minimal", budget: { total: 10000, remaining: 800 } },
+    ],
+    en: [
+      { message: "I want a new phone, budget under $4000 CNY-equivalent, with a great camera. No Xiaomi please.", mode: "full", budget: { total: 32000, reserved: 8000 } },
+      { message: "I play a lot of games, performance first, flat screen and big battery preferred.", mode: "balanced", budget: { total: 20000, remaining: 8000 } },
+      { message: "My last phone was an iPhone; my watch and earbuds are Apple too, ecosystem matters to me.", mode: "compact", budget: { total: 12000, remaining: 2000 } },
+      { message: "Summarize a spec list for me, and check which sponsored options are acceptable.", mode: "minimal", budget: { total: 10000, remaining: 800 } },
+    ],
+  },
+};
+
+const constraintContent = {
+  zh: '退款政策：商品须在购买后30天内退回。退款金额为全价减去10%手续费。需使用原支付方式。',
+  en: 'Refund policy: Items must be returned within 30 days of purchase. Refund amount is full price minus 10% restocking fee. Original payment method required.',
+};
+
+const dimLabels = {
+  goal: '目标 Goal', capability: '能力 Capability', preference: '偏好 Preference',
+  decision: '决策 Decision', relationship: '关系 Relationship',
+};
+
+const identityLabels = {
+  colleague: '同事', manager: '上级', subordinate: '下属', friend: '朋友',
+  family: '家人', partner: '伴侣', ex: '前任', acquaintance: '熟人', other: '其他',
+};
+
+const kfCatLabels = {
+  goal: '目标', hard_constraint: '硬约束', soft_preference: '软偏好',
+  confirmed_fact: '已确认', decision: '决策', entity: '实体',
+};
+
+function truncate(content, max) {
+  const s = typeof content === 'string' ? content : JSON.stringify(content);
+  return s.length > max ? s.slice(0, max) + '...' : s;
+}
+
+function App() {
+  // ------------------------------------------------------------------
+  // Shared state
+  // ------------------------------------------------------------------
+  const [lang, setLang] = useState('zh');
+  const [sessionId, setSessionId] = useState(() => 'demo-' + Math.random().toString(36).slice(2, 8));
+  const [messages, setMessages] = useState([]);
+  const [inputText, setInputText] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [contextItems, setContextItems] = useState([]);
+  const [metrics, setMetrics] = useState(null);
+  const [promptFragment, setPromptFragment] = useState('');
+  const [promptExpanded, setPromptExpanded] = useState(false);
+  const [showScript, setShowScript] = useState(false);
+  const [scriptKey, setScriptKey] = useState('refund');
+  const [sidebarTab, setSidebarTab] = useState('window');
+  const [config, setConfig] = useState({
+    strategy: 'dynamic',
+    max_tokens: 4096,
+    budget_total: 32000,
+    budget_reserved: 8000,
+    budget_remaining: null,
+    scenario: '',
+  });
+
+  // Summary & recall subsystem state (auto-filled from /orchestration/state).
+  const [summaryData, setSummaryData] = useState(null);
+  const [asyncTasks, setAsyncTasks] = useState([]);
+  const [kTurnInfo, setKTurnInfo] = useState(null);
+  const [recallResults, setRecallResults] = useState(null);
+  const [injectionInfo, setInjectionInfo] = useState(null);
+  const [conflictOld, setConflictOld] = useState('');
+  const [conflictNew, setConflictNew] = useState('');
+  const [conflictStrategy, setConflictStrategy] = useState('last_write_wins');
+  const [conflictResult, setConflictResult] = useState(null);
+  const [resolving, setResolving] = useState(false);
+  const [layersInfo, setLayersInfo] = useState([]);
+  const [archivedItems, setArchivedItems] = useState([]);
+  const [itemBusy, setItemBusy] = useState(false);
+
+  // User-profile subsystem state. The user id mirrors the backend
+  // orchestrator convention (user-<session_id>) so that profile data
+  // extracted during the conversation is visible to the panels.
+  const profileUserId = 'user-' + sessionId;
+  const [seeding, setSeeding] = useState(false);
+  const [loadingProfile, setLoadingProfile] = useState(false);
+  const [profileFacts, setProfileFacts] = useState([]);
+  const [persons, setPersons] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [prefs, setPrefs] = useState([]);
+  const [fallbackMsg, setFallbackMsg] = useState('');
+  const [specInfo, setSpecInfo] = useState(null);
+  const [boundaryInfo, setBoundaryInfo] = useState(null);
+  const [adCheckPrice, setAdCheckPrice] = useState(null);
+  const [adCheckResult, setAdCheckResult] = useState(null);
+
+  const msgContainer = useRef(null);
+  // Latest-state ref: imperative flows (runFullScript loop) read fresh state
+  // through it, avoiding React stale-closure captures across awaits.
+  const latest = useRef({});
+  latest.current = { sessionId, inputText, loading, config, lang };
+  const t = i18n[lang];
+  const scriptSteps = scriptData[scriptKey][lang];
+
+  // ------------------------------------------------------------------
+  // Derived values
+  // ------------------------------------------------------------------
+  const tokenBarPct = useMemo(() => {
+    if (!metrics || !metrics.total_context_tokens) return 0;
+    return Math.min(100, (metrics.window_tokens / metrics.total_context_tokens) * 100);
+  }, [metrics]);
+
+  const factsByDim = useMemo(() => {
+    const groups = {};
+    for (const fact of profileFacts) {
+      (groups[fact.dimension] = groups[fact.dimension] || []).push(fact);
+    }
+    return groups;
+  }, [profileFacts]);
+
+  const dimsWithFacts = useMemo(() =>
+    ['goal', 'capability', 'preference', 'decision', 'relationship']
+      .filter(d => factsByDim[d] && factsByDim[d].length > 0),
+  [factsByDim]);
+
+  const itemsByLayer = useMemo(() => {
+    const groups = {};
+    for (const item of contextItems) {
+      groups[item.layer] = (groups[item.layer] || 0) + 1;
+    }
+    return groups;
+  }, [contextItems]);
+
+  const priceScaleMax = useMemo(() => {
+    if (!boundaryInfo) return 1;
+    return boundaryInfo.max_price * 1.25;
+  }, [boundaryInfo]);
+
+  function pct(v) {
+    return Math.max(0, Math.min(100, (v / priceScaleMax) * 100));
+  }
+  const acceptableBarStyle = useMemo(() => {
+    if (!boundaryInfo) return {};
+    const b = boundaryInfo;
+    return { left: pct(b.min_price) + '%', width: (pct(b.max_price) - pct(b.min_price)) + '%' };
+  }, [boundaryInfo, priceScaleMax]);
+  const specBarStyle = useMemo(() => {
+    const range = (specInfo && specInfo.price_range) || null;
+    if (!range) return {};
+    return { left: pct(range[0]) + '%', width: (pct(range[1]) - pct(range[0])) + '%' };
+  }, [specInfo, priceScaleMax]);
+  const markerStyle = useMemo(() => {
+    if (adCheckPrice === null || isNaN(adCheckPrice)) return { display: 'none' };
+    return { left: pct(adCheckPrice) + '%' };
+  }, [adCheckPrice, priceScaleMax]);
+
+  // Auto-scroll on new messages / loading state changes.
+  useEffect(() => {
+    if (msgContainer.current) {
+      msgContainer.current.scrollTop = msgContainer.current.scrollHeight;
+    }
+  }, [messages, loading]);
+
+  // Load layer definitions once at startup.
+  useEffect(() => {
+    fetch('/context/layers')
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => { if (data) setLayersInfo(data); })
+      .catch(() => {});
+  }, []);
+
+  // Keep observing while background tasks (end_of_turn construction) are
+  // still running, so panels update automatically when the LLM finishes —
+  // no manual refresh or tab switching needed.
+  useEffect(() => {
+    if (!asyncTasks.some(task => task.state === 'running')) return;
+    const id = setInterval(() => refreshOrchestration(), 4000);
+    return () => clearInterval(id);
+  }, [asyncTasks]);
+
+  function personName(pid) {
+    const p = persons.find(x => x.person_id === pid);
+    return p ? p.name : pid.slice(0, 6);
+  }
+
+  function toggleLang() {
+    setLang(l => (l === 'zh' ? 'en' : 'zh'));
+  }
+
+  function updateConfig(patch) {
+    setConfig(c => ({ ...c, ...patch }));
+  }
+
+  async function refreshItems() {
+    const resp = await fetch('/context/items?session_id=' + sessionId);
+    if (resp.ok) setContextItems(await resp.json());
+  }
+
+  // ------------------------------------------------------------------
+  // Chat actions
+  // ------------------------------------------------------------------
+
+  function useScriptStep(idx) {
+    const step = scriptSteps[idx];
+    setInputText(step.message);
+    if (step.budget) {
+      updateConfig({
+        budget_total: step.budget.total,
+        budget_reserved: step.budget.reserved || 0,
+        budget_remaining: step.budget.remaining || null,
+      });
+    }
+    // The recommendation script pins the scenario for profile-aware loading.
+    updateConfig({ scenario: scriptKey === 'recommend' ? 'recommendation' : '' });
+  }
+
+  async function setupConstraint() {
+    const cur = latest.current;
+    try {
+      await fetch('/context/items?session_id=' + cur.sessionId, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'constraint',
+          content: constraintContent[cur.lang],
+          source: 'internal',
+          scope: 'current_task',
+          authority: 'hard_rule',
+          priority: 10,
+        }),
+      });
+      setMessages(prev => [...prev, {
+        id: Date.now(),
+        role: 'agent',
+        html: '<p style="color:var(--green);">' + t.constraintAdded + '</p>',
+      }]);
+    } catch (err) {
+      setMessages(prev => [...prev, {
+        id: Date.now(),
+        role: 'agent',
+        html: '<p style="color:var(--red);">' + t.constraintFailed + err.message + '</p>',
+      }]);
+    }
+  }
+
+  async function send(overrideText) {
+    const cur = latest.current;
+    const text = (overrideText !== undefined ? overrideText : cur.inputText).trim();
+    if (!text || cur.loading) return;
+
+    const cfg = cur.config;
+    const sid = cur.sessionId;
+    setMessages(prev => [...prev, { id: Date.now(), role: 'user', html: marked.parse(text) }]);
+    setInputText('');
+    setLoading(true);
+
+    let agentId = null;
+    let raw = '';
+    try {
+      const body = {
+        session_id: sid,
+        message: text,
+        strategy: cfg.strategy,
+        max_tokens: cfg.max_tokens,
+        scenario: cfg.scenario || null,
+      };
+      if (cfg.strategy === 'dynamic') {
+        body.token_budget = {
+          total: cfg.budget_total,
+          reserved: cfg.budget_reserved,
+        };
+        if (cfg.budget_remaining !== null) {
+          body.token_budget.remaining = cfg.budget_remaining;
+        }
+      }
+
+      const resp = await fetch('/chat/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!resp.ok) throw new Error(await resp.text());
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        // Parse complete SSE events separated by a blank line.
+        let sepIdx;
+        while ((sepIdx = buffer.indexOf('\n\n')) !== -1) {
+          const rawEvent = buffer.slice(0, sepIdx);
+          buffer = buffer.slice(sepIdx + 2);
+
+          const dataLine = rawEvent.split('\n').find(l => l.startsWith('data: '));
+          if (!dataLine) continue;
+          let event;
+          try { event = JSON.parse(dataLine.slice(6)); } catch { continue; }
+
+          if (event.type === 'meta') {
+            if (event.prompt_fragment) setPromptFragment(event.prompt_fragment);
+          } else if (event.type === 'delta') {
+            if (agentId === null) {
+              agentId = Date.now() + 1;
+              const id = agentId;
+              setMessages(prev => [...prev, { id, role: 'agent', html: '', raw: '' }]);
+              setLoading(false);
+            }
+            raw += (event.content || '');
+            const id = agentId;
+            const html = marked.parse(raw);
+            setMessages(prev => prev.map(m => (m.id === id ? { ...m, raw, html } : m)));
+          } else if (event.type === 'done') {
+            setContextItems(event.items || []);
+            setMetrics(event.metrics || null);
+            // Sync-injection report for this turn (summaries / profile / recalls).
+            if (event.injected) setInjectionInfo(event.injected);
+          }
+        }
+      }
+
+      // Handle empty responses.
+      if (agentId === null) {
+        setMessages(prev => [...prev, {
+          id: Date.now() + 1,
+          role: 'agent',
+          html: '<p style="color:var(--text-dim);">(empty response)</p>',
+        }]);
+      }
+    } catch (err) {
+      setMessages(prev => [...prev, {
+        id: Date.now() + 1,
+        role: 'agent',
+        html: '<p style="color:var(--red);">' + t.errorPrefix + err.message + '</p>',
+      }]);
+    } finally {
+      setLoading(false);
+      // Poll the orchestration state a few times: background tasks
+      // (summary / profile / spec) finish seconds after the turn ends.
+      for (const delay of [500, 2500, 5500, 9000]) {
+        setTimeout(() => refreshOrchestration(sid), delay);
+      }
+    }
+  }
+
+  async function runFullScript() {
+    setSessionId('demo-' + Math.random().toString(36).slice(2, 8));
+    setMessages([]);
+    setContextItems([]);
+    setMetrics(null);
+    setPromptFragment('');
+    // Reset per-script display state.
+    setProfileFacts([]);
+    setPersons([]);
+    setEvents([]);
+    setPrefs([]);
+    setSpecInfo(null);
+    setBoundaryInfo(null);
+    setAdCheckResult(null);
+    setSummaryData(null);
+    setKTurnInfo(null);
+    setRecallResults(null);
+    setInjectionInfo(null);
+    setAsyncTasks([]);
+    setConflictResult(null);
+    setArchivedItems([]);
+
+    for (let i = 0; i < scriptSteps.length; i++) {
+      const step = scriptSteps[i];
+      if (step.constraint) {
+        await setupConstraint();
+        await new Promise(r => setTimeout(r, 300));
+      }
+      useScriptStep(i);
+      await new Promise(r => setTimeout(r, 200));
+      await send(step.message);
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // Summary & recall subsystem — conversation-driven observation
+  // ------------------------------------------------------------------
+
+  // Fetch the orchestration state: summaries, background tasks, the K-turn
+  // window, recalls, and profile data are all produced by the chat flow
+  // itself (async construction at end_of_turn, sync injection at the start
+  // of each turn) — the frontend only observes, never triggers.
+  async function refreshOrchestration(sidOverride) {
+    const sid = sidOverride || latest.current.sessionId;
+    try {
+      const resp = await fetch('/orchestration/state?session_id=' + sid);
+      if (!resp.ok) return;
+      const st = await resp.json();
+      if (sid !== latest.current.sessionId) return; // stale response
+      setSummaryData(st.summary || null);
+      setAsyncTasks(st.tasks || []);
+      setKTurnInfo(st.k_turn || null);
+      setRecallResults(st.recalls || []);
+      if (st.injection) setInjectionInfo(st.injection);
+      const p = st.profile || {};
+      setProfileFacts(p.facts || []);
+      setPersons(p.persons || []);
+      setEvents(p.events || []);
+      setPrefs((p.preferences || []).slice().reverse());
+      setSpecInfo(p.spec || null);
+      setBoundaryInfo(p.boundary || null);
+    } catch { /* observation polling is best-effort */ }
+  }
+
+  // Human-readable one-liner for a background task result.
+  function fmtTaskResult(kind, result) {
+    if (!result) return '';
+    if (kind === 'summary_extract') {
+      const types = Array.isArray(result.types) ? result.types.join('/') : (result.types || '');
+      const ratio = typeof result.compression_ratio === 'number'
+        ? ' · -' + Math.round(result.compression_ratio * 100) + '%' : '';
+      return types + ratio;
+    }
+    if (kind === 'profile_extract') return '+' + result.new_facts + ' / ' + result.total_facts + ' facts';
+    if (kind === 'spec_derivation' && Array.isArray(result.price_range)) {
+      return '¥' + result.price_range[0] + ' - ' + result.price_range[1];
+    }
+    return JSON.stringify(result);
+  }
+
+  function switchTab(tab) {
+    setSidebarTab(tab);
+    // Observation panels refresh from the orchestration state on switch.
+    if (tab !== 'window') refreshOrchestration();
+  }
+
+  async function resolveConflict() {
+    setResolving(true);
+    setConflictResult(null);
+    try {
+      const resp = await fetch('/context/summaries/conflicts/resolve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          entries: [{ content: conflictOld }, { content: conflictNew }],
+          strategy: conflictStrategy,
+        }),
+      });
+      if (!resp.ok) throw new Error(await resp.text());
+      setConflictResult(await resp.json());
+    } catch (err) {
+      alert(t.errorPrefix + err.message);
+    } finally {
+      setResolving(false);
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // Layers & archive actions
+  // ------------------------------------------------------------------
+
+  async function loadArchive() {
+    try {
+      const resp = await fetch('/context/archive?session_id=' + sessionId);
+      if (resp.ok) setArchivedItems((await resp.json()).slice().reverse());
+    } catch { /* ignore */ }
+  }
+
+  async function promoteItem(item) {
+    setItemBusy(true);
+    try {
+      const resp = await fetch('/context/layers/' + item.layer + '/promote?session_id=' + sessionId + '&item_id=' + item.id, {
+        method: 'POST',
+      });
+      if (!resp.ok) {
+        const detail = await resp.json().catch(() => ({}));
+        throw new Error(detail.detail || resp.status);
+      }
+      await refreshItems();
+    } catch (err) {
+      alert(t.errorPrefix + err.message);
+    } finally {
+      setItemBusy(false);
+    }
+  }
+
+  async function archiveItemAction(item) {
+    setItemBusy(true);
+    try {
+      const resp = await fetch('/context/archive/' + item.id + '?session_id=' + sessionId, {
+        method: 'POST',
+      });
+      if (!resp.ok) throw new Error(await resp.text());
+      await refreshItems();
+      await loadArchive();
+    } catch (err) {
+      alert(t.errorPrefix + err.message);
+    } finally {
+      setItemBusy(false);
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // User-profile subsystem — conversation-driven observation
+  // ------------------------------------------------------------------
+
+  async function loadProfileData() {
+    setLoadingProfile(true);
+    try {
+      const resp = await fetch('/profiles/' + profileUserId);
+      if (!resp.ok) throw new Error(await resp.text());
+      const data = await resp.json();
+      setPersons(data.persons || []);
+      setPrefs((data.preferences || []).slice().reverse());
+      const evResp = await fetch('/profiles/' + profileUserId + '/relationships/events');
+      setEvents(evResp.ok ? (await evResp.json()).slice().reverse() : []);
+    } catch (err) {
+      alert(t.errorPrefix + err.message);
+    } finally {
+      setLoadingProfile(false);
+    }
+  }
+
+  async function seedRelationships() {
+    setSeeding(true);
+    try {
+      await fetch('/profiles/' + profileUserId + '/relationships/persons', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: '老王', identity: 'manager',
+          user_attitude: '用户对老王态度谨慎',
+          evidence: ['用户在对话中提到老王'],
+          confidence: 0.8,
+        }),
+      });
+      await fetch('/profiles/' + profileUserId + '/relationships/persons', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: '小李', identity: 'friend', confidence: 0.8 }),
+      });
+      await fetch('/profiles/' + profileUserId + '/relationships/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          occurred_at_fuzzy: '上周',
+          participants: { '老王': 'initiator', '小李': 'observer' },
+          objective_fact: '老王在周会上肯定了用户的方案（客观事实）',
+          user_interpretation: '用户认为老王开始支持自己的方向（主观解读）',
+          user_emotion: 'relieved',
+          relation_effects: { '老王': 'trust↑' },
+        }),
+      });
+      await loadProfileData();
+    } catch (err) {
+      alert(t.errorPrefix + err.message);
+    } finally {
+      setSeeding(false);
+    }
+  }
+
+  async function computePercentiles() {
+    setLoadingProfile(true);
+    setFallbackMsg('');
+    try {
+      const resp = await fetch('/profiles/' + profileUserId + '/preferences/percentiles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        // Demo order history: shirts in the ~70% price band.
+        body: JSON.stringify({
+          orders: [
+            { category_id: 'shirts', sku_id: 'sku-1', price: 59, price_percentile: 0.7 },
+            { category_id: 'shirts', sku_id: 'sku-2', price: 75, price_percentile: 0.75 },
+          ],
+        }),
+      });
+      if (!resp.ok) throw new Error(await resp.text());
+      await loadProfileData();
+    } catch (err) {
+      alert(t.errorPrefix + err.message);
+    } finally {
+      setLoadingProfile(false);
+    }
+  }
+
+  async function queryPantsFallback() {
+    setLoadingProfile(true);
+    setFallbackMsg('');
+    try {
+      const resp = await fetch('/profiles/' + profileUserId + '/preferences/pants/price');
+      if (resp.status === 404) {
+        setFallbackMsg(lang === 'zh'
+          ? '裤子无价格历史，且无相似类目可借用（请先点击"计算订单价格百分位"）。'
+          : 'No pants history and no sibling available (compute percentiles first).');
+        return;
+      }
+      if (!resp.ok) throw new Error(await resp.text());
+      const rec = await resp.json();
+      setFallbackMsg((lang === 'zh'
+        ? '裤子无直接历史 → 借用相似类目 shirts 的价格百分位 '
+        : 'No direct pants history → borrowed sibling shirts percentile ')
+        + rec.preference_value
+        + (lang === 'zh' ? '，置信度 ×0.6 = ' : ', confidence ×0.6 = ')
+        + (rec.confidence * 100).toFixed(0) + '%');
+      await loadProfileData();
+    } catch (err) {
+      alert(t.errorPrefix + err.message);
+    } finally {
+      setLoadingProfile(false);
+    }
+  }
+
+  async function checkAd() {
+    if (adCheckPrice === null || isNaN(adCheckPrice)) return;
+    setLoadingProfile(true);
+    try {
+      const resp = await fetch('/profiles/' + profileUserId + '/acceptable-ads/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          category_id: 'phones', price_range: [3000, 4000], slack_ratio: 0.2,
+          candidate_price: adCheckPrice,
+        }),
+      });
+      if (!resp.ok) throw new Error(await resp.text());
+      const data = await resp.json();
+      setAdCheckResult(data.allowed);
+    } catch (err) {
+      alert(t.errorPrefix + err.message);
+    } finally {
+      setLoadingProfile(false);
+    }
+  }
+
+  function handleInputKeyDown(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      send();
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // Render helpers
+  // ------------------------------------------------------------------
+
+  const renderScriptStep = (step, idx, compact) => (
+    <div key={idx} className="script-step" onClick={() => useScriptStep(idx)}
+         style={compact ? { padding: '6px 8px', marginBottom: '4px' } : undefined}>
+      <div className="step-header">
+        <span className="step-num">{idx + 1}</span>
+        <span className={'step-mode budget-' + step.mode}>{step.mode.toUpperCase()}</span>
+        {!compact && step.constraint && <span style={{ fontSize: '10px', color: 'var(--orange)' }}>+ constraint</span>}
+      </div>
+      <div className="step-msg" style={compact ? { fontSize: '12px' } : undefined}>{step.message}</div>
+    </div>
+  );
+
+  const dimSectionStyle = { fontSize: '11px', color: 'var(--text-dim)', marginBottom: '8px', lineHeight: 1.4 };
+
+  // ------------------------------------------------------------------
+  // Render
+  // ------------------------------------------------------------------
+
+  return (
+    <React.Fragment>
+      <div className="header">
+        <h1>XContext Agent Demo</h1>
+        <span className="badge">Context Window = f(Context)</span>
+        <button className="lang-toggle" onClick={toggleLang}>{lang === 'zh' ? 'English' : '中文'}</button>
+        <span className="session">{t.session}: {sessionId}</span>
+      </div>
+      <div className="main">
+        {/* Chat Area */}
+        <div className="chat-area">
+          <div className="messages" ref={msgContainer}>
+            {messages.length === 0 && (
+              <div style={{ padding: '30px 20px' }}>
+                <div className="script-guide">
+                  <h4>{scriptKey === 'recommend' ? t.scriptTitleRecommend : t.scriptTitle}</h4>
+                  <div style={{ marginBottom: '6px' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--text-dim)', marginRight: '6px' }}>{t.scriptSelector}</span>
+                    <label style={{ fontSize: '12px', marginRight: '10px', cursor: 'pointer' }}>
+                      <input type="radio" value="refund" checked={scriptKey === 'refund'}
+                             onChange={() => setScriptKey('refund')} /> {t.scriptRefund}
+                    </label>
+                    <label style={{ fontSize: '12px', cursor: 'pointer' }}>
+                      <input type="radio" value="recommend" checked={scriptKey === 'recommend'}
+                             onChange={() => setScriptKey('recommend')} /> {t.scriptRecommend}
+                    </label>
+                  </div>
+                  <p style={{ fontSize: '12px', color: 'var(--text-dim)', marginBottom: '12px' }}>
+                    {scriptKey === 'recommend' ? t.scriptDescRecommend : t.scriptDesc}
+                  </p>
+                  <div className="script-actions" style={{ marginBottom: '12px' }}>
+                    <button className="primary" onClick={runFullScript} disabled={loading}>{t.runFullScript}</button>
+                    {scriptKey === 'refund' && <button onClick={setupConstraint} disabled={loading}>{t.addConstraint}</button>}
+                  </div>
+                  {scriptSteps.map((step, idx) => renderScriptStep(step, idx, false))}
+                </div>
+              </div>
+            )}
+            {messages.map(msg => (
+              <div key={msg.id} className={'msg ' + msg.role}>
+                <div className="msg-label">{msg.role === 'user' ? t.you : t.agent}</div>
+                <div className="msg-bubble" dangerouslySetInnerHTML={{ __html: msg.html }}></div>
+              </div>
+            ))}
+            {loading && (
+              <div className="msg agent">
+                <div className="msg-label">{t.agent}</div>
+                <div className="msg-bubble">
+                  <div className="loading-dots"><span></span><span></span><span></span></div>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="input-area">
+            {messages.length > 0 && (
+              <div className="input-hint">
+                <a href="#" onClick={e => { e.preventDefault(); setShowScript(s => !s); }}
+                   style={{ color: 'var(--accent)', textDecoration: 'none' }}>
+                  {showScript ? t.hideScript : t.showScript}
+                </a>
+              </div>
+            )}
+            {showScript && messages.length > 0 && (
+              <div style={{ marginBottom: '6px' }}>
+                {scriptSteps.map((step, idx) => renderScriptStep(step, idx, true))}
+              </div>
+            )}
+            <div className="input-row">
+              <textarea value={inputText}
+                        onChange={e => setInputText(e.target.value)}
+                        onKeyDown={handleInputKeyDown}
+                        placeholder={t.inputPlaceholder}
+                        disabled={loading}></textarea>
+              <button onClick={() => send()} disabled={loading || !inputText.trim()}>{t.send}</button>
+            </div>
+          </div>
+        </div>
+
+        {/* Sidebar */}
+        <div className="sidebar">
+          {/* Sidebar tabs */}
+          <div className="sb-tabs">
+            <div className={'sb-tab' + (sidebarTab === 'window' ? ' active' : '')}
+                 onClick={() => switchTab('window')}>{t.tabWindow}</div>
+            <div className={'sb-tab' + (sidebarTab === 'summaries' ? ' active' : '')}
+                 onClick={() => switchTab('summaries')}>{t.tabSummaries}</div>
+            <div className={'sb-tab' + (sidebarTab === 'profile' ? ' active' : '')}
+                 onClick={() => switchTab('profile')}>{t.tabProfile}</div>
+          </div>
+
+          {/* ============ Tab: Context Window ============ */}
+          {sidebarTab === 'window' && (
+            <React.Fragment>
+              {/* Config */}
+              <div className="sb-section">
+                <h3>{t.config}</h3>
+                <div className="form-row">
+                  <label>{t.strategy}</label>
+                  <select value={config.strategy} onChange={e => updateConfig({ strategy: e.target.value })}>
+                    <option value="sliding">Sliding</option>
+                    <option value="summary">Summary</option>
+                    <option value="hybrid">Hybrid</option>
+                    <option value="dynamic">Dynamic</option>
+                  </select>
+                </div>
+                <div className="form-row">
+                  <label>{t.maxTokens}</label>
+                  <input type="range" min="512" max="16384" step="512" value={config.max_tokens}
+                         onChange={e => updateConfig({ max_tokens: Number(e.target.value) })} />
+                  <span className="val">{config.max_tokens}</span>
+                </div>
+                {config.strategy === 'dynamic' && (
+                  <React.Fragment>
+                    <div className="form-row">
+                      <label>{t.budgetTotal}</label>
+                      <input type="number" min="1000" step="1000" value={config.budget_total}
+                             onChange={e => updateConfig({ budget_total: Number(e.target.value) })} />
+                    </div>
+                    <div className="form-row">
+                      <label>{t.reserved}</label>
+                      <input type="number" min="0" step="500" value={config.budget_reserved}
+                             onChange={e => updateConfig({ budget_reserved: Number(e.target.value) })} />
+                    </div>
+                  </React.Fragment>
+                )}
+                <div className="form-row">
+                  <label>{t.scenario}</label>
+                  <input type="text" value={config.scenario} placeholder={t.scenarioPlaceholder}
+                         onChange={e => updateConfig({ scenario: e.target.value })} />
+                </div>
+              </div>
+
+              {/* Metrics */}
+              {metrics && (
+                <div className="sb-section">
+                  <h3>{t.metrics}</h3>
+                  <div style={{ marginBottom: '6px' }}>
+                    <span className={'tag budget-' + (metrics.budget_mode || 'full')}>
+                      {(metrics.budget_mode || 'N/A').toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="metrics-grid">
+                    <div className="metric-card"><div className="metric-val">{metrics.retrieved_count}</div><div className="metric-label">{t.retrieved}</div></div>
+                    <div className="metric-card"><div className="metric-val">{metrics.selected_count}</div><div className="metric-label">{t.selected}</div></div>
+                    <div className="metric-card"><div className="metric-val">{metrics.compressed_count}</div><div className="metric-label">{t.compressed}</div></div>
+                    <div className="metric-card"><div className="metric-val">{metrics.ordered_count}</div><div className="metric-label">{t.ordered}</div></div>
+                  </div>
+                  <div style={{ marginTop: '8px' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginBottom: '2px' }}>{t.windowTokens}</div>
+                    <div style={{ fontSize: '12px' }}>{metrics.window_tokens} / {metrics.total_context_tokens} tokens</div>
+                    <div className="token-bar">
+                      <div className="token-bar-fill" style={{ width: tokenBarPct + '%' }}></div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Layer architecture */}
+              <div className="sb-section">
+                <h3>{t.layerArchitecture}</h3>
+                <div className="layer-chain">
+                  {layersInfo.map((layer, idx) => (
+                    <React.Fragment key={layer.name}>
+                      <div className="layer-node">
+                        <div className="ln-name">{layer.name}</div>
+                        <div className="ln-desc">{layer.description}</div>
+                        <div className="ln-desc" style={{ color: 'var(--green)' }}>
+                          {itemsByLayer[layer.name] || 0} {t.itemsUnit}
+                        </div>
+                      </div>
+                      {idx < layersInfo.length - 1 && <span className="layer-arrow">→</span>}
+                    </React.Fragment>
+                  ))}
+                </div>
+                <div style={{ fontSize: '10px', color: 'var(--text-dim)', lineHeight: 1.4 }}>{t.layerHint}</div>
+              </div>
+
+              {/* Context Items */}
+              <div className="sb-section">
+                <h3>{t.contextItems} ({contextItems.length})</h3>
+                {contextItems.length === 0 && <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>{t.noItems}</div>}
+                {contextItems.map(item => (
+                  <div key={item.id} className="ctx-item">
+                    <div className="ctx-header">
+                      <span className={'tag ' + item.type}>{item.type}</span>
+                      <span className={'tag auth-' + item.authority}>{item.authority}</span>
+                      <span className="tag" style={{ background: 'rgba(139,143,158,0.15)', color: 'var(--text-dim)' }}>{item.layer}</span>
+                      {item.compression_level && <span className={'tag comp-' + item.compression_level}>{item.compression_level.toUpperCase()}</span>}
+                      <span className="ctx-meta">{item.token_cost || 0} tok</span>
+                    </div>
+                    <div className="ctx-content">{truncate(item.content, 100)}</div>
+                    <div className="item-actions">
+                      <button className="mini-btn tiny" onClick={() => promoteItem(item)} disabled={itemBusy}>{t.promote}</button>
+                      <button className="mini-btn tiny" onClick={() => archiveItemAction(item)} disabled={itemBusy}>{t.archiveBtn}</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Archived items */}
+              <div className="sb-section">
+                <h3>{t.archiveSection} ({archivedItems.length})</h3>
+                <div style={{ marginBottom: '6px' }}>
+                  <button className="mini-btn" onClick={loadArchive} disabled={itemBusy}>{t.refreshArchive}</button>
+                </div>
+                {archivedItems.length === 0 && <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>{t.noArchived}</div>}
+                {archivedItems.map(item => (
+                  <div key={item.id} className="ctx-item" style={{ opacity: 0.7 }}>
+                    <div className="ctx-header">
+                      <span className={'tag ' + item.type}>{item.type}</span>
+                      <span className="tag" style={{ background: 'rgba(139,143,158,0.15)', color: 'var(--text-dim)' }}>{item.layer}</span>
+                      <span className="ctx-meta">{item.token_cost || 0} tok</span>
+                    </div>
+                    <div className="ctx-content">{truncate(item.content, 80)}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Prompt Preview */}
+              {promptFragment && (
+                <div className="sb-section">
+                  <h3>{t.promptFragment}</h3>
+                  <div className="prompt-toggle" onClick={() => setPromptExpanded(p => !p)}>
+                    {promptExpanded ? t.collapse : t.expand} ({promptFragment.length} chars)
+                  </div>
+                  {promptExpanded && <div className="prompt-preview">{promptFragment}</div>}
+                </div>
+              )}
+            </React.Fragment>
+          )}
+
+          {/* ============ Tab: Summaries & Recall ============ */}
+          {sidebarTab === 'summaries' && (
+            <React.Fragment>
+              {/* Sync injection report for this turn */}
+              <div className="sb-section">
+                <h3>{t.turnInjection}</h3>
+                <div style={dimSectionStyle}>{t.turnInjectionDesc}</div>
+                {injectionInfo ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '2px 8px', fontSize: '11px', marginBottom: '4px' }}>
+                    <span style={{ color: 'var(--text-dim)' }}>{t.injKeywords}</span>
+                    <span style={{ fontFamily: 'monospace', color: 'var(--accent)' }}>
+                      {(injectionInfo.keywords || []).join(' · ') || t.noneVal}
+                    </span>
+                    <span style={{ color: 'var(--text-dim)' }}>{t.injSummaries}</span>
+                    <span style={{ color: 'var(--green)' }}>
+                      {(injectionInfo.summary_types || []).join(', ') || t.noneVal}
+                    </span>
+                    <span style={{ color: 'var(--text-dim)' }}>{t.injProfileItems}</span>
+                    <span>{injectionInfo.profile_item_count}</span>
+                    <span style={{ color: 'var(--text-dim)' }}>{t.injRecalls}</span>
+                    <span>{(injectionInfo.recalls || []).length}</span>
+                  </div>
+                ) : (
+                  <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>{t.noInjection}</div>
+                )}
+              </div>
+
+              {/* Multi-type summaries */}
+              <div className="sb-section">
+                <h3>{t.multiSummary}</h3>
+                <div style={dimSectionStyle}>{t.multiSummaryDesc}</div>
+                {summaryData ? (
+                  <React.Fragment>
+                    <div className="compression-bar">
+                      <span>{t.sourceTokens}: {summaryData.source_tokens}</span>
+                      <span style={{ color: 'var(--green)' }}>{t.compressedTo} {summaryData.compressed_tokens}</span>
+                      <span style={{ color: 'var(--accent)', fontWeight: 600 }}>-{(summaryData.compression_ratio * 100).toFixed(0)}%</span>
+                    </div>
+                    {summaryData.summaries.conversation && (
+                      <React.Fragment>
+                        <div className="sum-type">
+                          <span className="st-name" style={{ color: 'var(--pink)' }}>💬 {t.sumConversation}</span>
+                          <span className="st-tok">{summaryData.summaries.conversation.token_cost} tok</span>
+                        </div>
+                        <div className="sum-content">{summaryData.summaries.conversation.content}</div>
+                      </React.Fragment>
+                    )}
+                    {summaryData.summaries.chapter && (
+                      <React.Fragment>
+                        <div className="sum-type">
+                          <span className="st-name" style={{ color: 'var(--purple)' }}>📖 {t.sumChapter}</span>
+                          <span className="st-tok">{summaryData.summaries.chapter.token_cost} tok · {summaryData.summaries.chapter.chapters.length} ch</span>
+                        </div>
+                        {summaryData.summaries.chapter.chapters.map(ch => (
+                          <div key={ch.index} className="sum-content">
+                            #{ch.index} ({t.itemsUnit} {ch.item_range[0]}-{ch.item_range[1]}): {ch.content}
+                          </div>
+                        ))}
+                      </React.Fragment>
+                    )}
+                    {summaryData.summaries.key_facts && (
+                      <React.Fragment>
+                        <div className="sum-type">
+                          <span className="st-name" style={{ color: 'var(--cyan)' }}>🔑 {t.sumKeyFacts}</span>
+                          <span className="st-tok">{summaryData.summaries.key_facts.fact_count} facts · {summaryData.summaries.key_facts.token_cost} tok</span>
+                        </div>
+                        {Object.entries(summaryData.summaries.key_facts.categories).map(([cat, facts]) => (
+                          <div key={cat} className="kf-group">
+                            {facts.map(f => (
+                              <div key={f.content} className="kf-row">
+                                <span className={'kf-cat ' + cat}>{kfCatLabels[cat] || cat}</span>
+                                <span>{f.content}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                      </React.Fragment>
+                    )}
+                    {summaryData.summaries.model_readable && (
+                      <React.Fragment>
+                        <div className="sum-type">
+                          <span className="st-name" style={{ color: 'var(--green)' }}>🤖 {t.sumModelReadable}</span>
+                          <span className="st-tok">{summaryData.summaries.model_readable.token_cost} tok</span>
+                        </div>
+                        <div className="sum-content">{summaryData.summaries.model_readable.content}</div>
+                      </React.Fragment>
+                    )}
+                  </React.Fragment>
+                ) : (
+                  <div style={{ fontSize: '12px', color: 'var(--text-dim)', marginTop: '6px' }}>{t.noSummary}</div>
+                )}
+              </div>
+
+              {/* Background tasks (auto-scheduled at end_of_turn) */}
+              <div className="sb-section">
+                <h3>{t.asyncScheduler}</h3>
+                <div style={dimSectionStyle}>{t.asyncDesc}</div>
+                {asyncTasks.length === 0 && <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>{t.noTasks}</div>}
+                {asyncTasks.map(task => (
+                  <div key={task.task_id} className="task-item">
+                    <div className="task-row">
+                      <span className={'task-state ' + task.state}>{task.state}</span>
+                      <span className="task-trigger">{(t.taskKinds && t.taskKinds[task.kind]) || task.kind}</span>
+                      <span className="task-trigger">{task.item_count} items</span>
+                    </div>
+                    {task.result && <div className="task-result">{fmtTaskResult(task.kind, task.result)}</div>}
+                    {task.error && <div className="task-result" style={{ color: 'var(--red)' }}>{truncate(task.error, 140)}</div>}
+                  </div>
+                ))}
+              </div>
+
+              {/* K-turn raw window (auto-synced each turn) */}
+              <div className="sb-section">
+                <h3>{t.kTurnWindow}</h3>
+                <div style={dimSectionStyle}>{t.kTurnDesc}</div>
+                {!kTurnInfo && <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>{t.noTurnData}</div>}
+                {kTurnInfo && (
+                  <React.Fragment>
+                    <div className="kt-grid">
+                      <div className="kt-cell"><div className="kt-val">{kTurnInfo.total_turns}</div><div className="kt-lbl">{t.totalTurns}</div></div>
+                      <div className="kt-cell"><div className="kt-val">{kTurnInfo.kept_turns}/{kTurnInfo.k}</div><div className="kt-lbl">{t.keptTurns}</div></div>
+                      <div className="kt-cell"><div className="kt-val" style={{ color: 'var(--orange)' }}>{kTurnInfo.evicted_item_count}</div><div className="kt-lbl">{t.evictedItems}</div></div>
+                      <div className="kt-cell"><div className="kt-val">{kTurnInfo.raw_token_count}</div><div className="kt-lbl">tokens</div></div>
+                    </div>
+                    {kTurnInfo.raw_preview.map((p, i) => (
+                      <div key={i} className="kt-preview">[{p.type}] {p.content}</div>
+                    ))}
+                  </React.Fragment>
+                )}
+              </div>
+
+              {/* Auto recall (sync injection at the start of each turn) */}
+              <div className="sb-section">
+                <h3>{t.detailRecall}</h3>
+                <div style={dimSectionStyle}>{t.detailRecallDesc}</div>
+                {recallResults !== null && (
+                  <React.Fragment>
+                    <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginBottom: '4px' }}>
+                      {recallResults.length} {t.recallHits}
+                    </div>
+                    {recallResults.length === 0 && (
+                      <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>{t.noRecall}</div>
+                    )}
+                    {recallResults.map(r => (
+                      <div key={r.id} className="recall-item">
+                        <div className="task-row" style={{ marginBottom: '2px' }}>
+                          <span className={'tag ' + r.type}>{r.type}</span>
+                          <span className="recall-score">score {r.score}</span>
+                          <span className="task-trigger">{r.token_cost || 0} tok</span>
+                          {r.matched && r.matched.length > 0 && (
+                            <span className="task-trigger" style={{ color: 'var(--accent)' }}>⚡ {r.matched.join(',')}</span>
+                          )}
+                        </div>
+                        {truncate(r.content, 100)}
+                      </div>
+                    ))}
+                  </React.Fragment>
+                )}
+              </div>
+
+              {/* Conflict resolution */}
+              <div className="sb-section">
+                <h3>{t.conflictResolution}</h3>
+                <div style={dimSectionStyle}>{t.conflictDesc}</div>
+                <input className="conf-input" value={conflictOld} placeholder={t.conflictOldPh}
+                       onChange={e => setConflictOld(e.target.value)} />
+                <input className="conf-input" value={conflictNew} placeholder={t.conflictNewPh}
+                       onChange={e => setConflictNew(e.target.value)} />
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '6px' }}>
+                  <select value={conflictStrategy} onChange={e => setConflictStrategy(e.target.value)}
+                          style={{ flex: 1, background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: '6px', color: 'var(--text)', padding: '4px 6px', fontSize: '11px' }}>
+                    <option value="last_write_wins">last_write_wins</option>
+                    <option value="authority_precedence">authority_precedence</option>
+                  </select>
+                  <button className="mini-btn" onClick={resolveConflict}
+                          disabled={resolving || !conflictOld.trim() || !conflictNew.trim()}>{t.resolveBtn}</button>
+                </div>
+                {conflictResult && (
+                  <React.Fragment>
+                    <div className="conf-winner">✓ {t.winner}: {conflictResult.resolved[0]}</div>
+                    {conflictResult.dropped.map(d => (
+                      <div key={d} className="conf-dropped">✗ {d}</div>
+                    ))}
+                  </React.Fragment>
+                )}
+              </div>
+            </React.Fragment>
+          )}
+
+          {/* ============ Tab: User Profile ============ */}
+          {sidebarTab === 'profile' && (
+            <React.Fragment>
+              {/* Five-dimension extraction (auto, in-conversation) */}
+              <div className="sb-section">
+                <h3>{t.profileExtract}</h3>
+                <div style={dimSectionStyle}>{t.profileExtractDesc}</div>
+                {profileFacts.length === 0 && <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>{t.noFacts}</div>}
+                {dimsWithFacts.map(dim => (
+                  <div key={dim} className="dim-group">
+                    <div className="dim-head">
+                      <span className={'dim-tag ' + dim}>{dimLabels[dim]}</span>
+                      <span className="dim-count">{factsByDim[dim].length}</span>
+                    </div>
+                    {factsByDim[dim].map(fact => (
+                      <div key={fact.id} className="fact-item">
+                        <div className="fact-row">
+                          <span className="fact-text">{fact.content}</span>
+                          {fact.is_dislike && <span className="badge-dislike">{t.dislike}</span>}
+                          {!fact.is_dislike && fact.is_hard_requirement && <span className="badge-hard">{t.hardReq}</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+
+              {/* Relationship profile */}
+              <div className="sb-section">
+                <h3>{t.relationships}</h3>
+                <div style={{ marginBottom: '8px' }}>
+                  <button className="mini-btn" onClick={seedRelationships} disabled={seeding}>{t.seedDemoBtn}</button>
+                  <button className="mini-btn" onClick={loadProfileData} disabled={loadingProfile}>{t.refresh}</button>
+                </div>
+                {persons.length === 0 && <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>{t.noPersons}</div>}
+                {persons.map(p => (
+                  <div key={p.person_id} className="person-card">
+                    <div className="p-head">
+                      <span className="p-name">{p.name}</span>
+                      <span className="p-identity">{identityLabels[p.identity] || p.identity}</span>
+                      <span className="conf-dots">conf {(p.confidence * 100).toFixed(0)}%</span>
+                    </div>
+                    {p.user_attitude && <div className="p-attitude">→ {p.user_attitude}</div>}
+                  </div>
+                ))}
+                {events.length > 0 && (
+                  <div style={{ marginTop: '10px' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginBottom: '4px' }}>{t.eventTimeline}</div>
+                    {events.map(e => (
+                      <div key={e.event_id} className="event-card">
+                        <div className="e-fact">{e.objective_fact}</div>
+                        {e.user_interpretation && <div className="e-interp">"{e.user_interpretation}"</div>}
+                        <div className="e-effects">
+                          {Object.entries(e.relation_effects || {}).map(([pid, eff]) => (
+                            <span key={pid} className="effect-chip">{personName(pid)} {eff}</span>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Category preferences & recommendation */}
+              <div className="sb-section">
+                <h3>{t.categoryPrefs}</h3>
+                <div style={{ marginBottom: '8px' }}>
+                  <button className="mini-btn" onClick={computePercentiles} disabled={loadingProfile}>{t.percentileBtn}</button>
+                  <button className="mini-btn" onClick={queryPantsFallback} disabled={loadingProfile}>{t.pantsFallbackBtn}</button>
+                </div>
+                {prefs.length === 0 && <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>{t.noPrefs}</div>}
+                {prefs.map(p => (
+                  <div key={p.id} className="pref-item">
+                    <span className="pref-cat">{p.category_id}</span>
+                    <span className="pref-val">{p.attribute_key} = {p.preference_value}</span>
+                    {p.source === 'sibling_category' && <span className="sibling-badge">{t.sibling}</span>}
+                    <span className="conf-dots">conf {(p.confidence * 100).toFixed(0)}%</span>
+                  </div>
+                ))}
+                {fallbackMsg && <div style={{ fontSize: '11px', color: 'var(--purple)', marginTop: '6px', lineHeight: 1.4 }}>{fallbackMsg}</div>}
+              </div>
+
+              {/* Recommendation spec & acceptable ads (auto-derived) */}
+              <div className="sb-section">
+                <h3>{t.specAds}</h3>
+                {specInfo ? (
+                  <React.Fragment>
+                    <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '4px' }}>
+                      {t.specRange}: <span style={{ color: 'var(--accent)', fontFamily: 'monospace' }}>
+                        {specInfo.price_range ? specInfo.price_range[0] + ' - ' + specInfo.price_range[1] : 'N/A'}
+                      </span>
+                    </div>
+                    {specInfo.required_features && specInfo.required_features.length > 0 && (
+                      <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>
+                        {t.specFeatures}: <span style={{ color: 'var(--green)' }}>{specInfo.required_features.join(', ')}</span>
+                      </div>
+                    )}
+                    {specInfo.excluded_brands && specInfo.excluded_brands.length > 0 && (
+                      <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>
+                        {t.specExcluded}: <span style={{ color: 'var(--red)' }}>{specInfo.excluded_brands.join(', ')}</span>
+                      </div>
+                    )}
+                    {boundaryInfo && (
+                      <div className="price-viz">
+                        <div className="price-legend">
+                          <span><span className="dot" style={{ background: 'rgba(52,211,153,0.5)' }}></span>{t.acceptableRange}</span>
+                          <span><span className="dot" style={{ background: 'rgba(79,140,247,0.7)' }}></span>{t.specRange}</span>
+                        </div>
+                        <div className="price-scale">
+                          <div className="price-acceptable" style={acceptableBarStyle}></div>
+                          <div className="price-spec" style={specBarStyle}></div>
+                          {adCheckPrice !== null && <div className="price-marker" style={markerStyle}></div>}
+                          {adCheckPrice !== null && <div className="price-marker-label" style={markerStyle}>{adCheckPrice}</div>}
+                        </div>
+                        <div style={{ fontSize: '10px', color: 'var(--text-dim)', marginBottom: '6px' }}>
+                          {t.boundaryLabel}: {boundaryInfo.min_price} - {boundaryInfo.max_price} (slack {(boundaryInfo.slack_ratio * 100).toFixed(0)}%)
+                        </div>
+                        <div className="ad-check-row">
+                          <input type="number" value={adCheckPrice === null ? '' : adCheckPrice}
+                                 placeholder={t.adPricePlaceholder}
+                                 onChange={e => { const v = e.target.valueAsNumber; setAdCheckPrice(Number.isNaN(v) ? null : v); }} />
+                          <button className="mini-btn" onClick={checkAd} disabled={loadingProfile}>{t.check}</button>
+                        </div>
+                        {adCheckResult !== null && (
+                          <div className={'ad-result ' + (adCheckResult ? 'ok' : 'rejected')}>
+                            {adCheckResult ? '✓ ' + t.adAllowed : '✗ ' + t.adRejected}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </React.Fragment>
+                ) : (
+                  <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>{t.noSpec}</div>
+                )}
+              </div>
+            </React.Fragment>
+          )}
+        </div>
+      </div>
+    </React.Fragment>
+  );
+}
+
+createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

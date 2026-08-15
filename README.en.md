@@ -75,14 +75,26 @@ Supports configurable promotion/demotion rules, e.g., automatically promoting a 
 
 ### Agent Chat Demo
 
-A Vue 3-based frontend demo (`backend/static/index.html`) is included, wiring up the backend APIs end-to-end:
+A React 18-based frontend demo (`frontend/index.html`) is included, wiring up the backend APIs end-to-end. The right-hand panels are **conversation-driven observation panels**: summary extraction and profile construction run automatically in the background at the end of each turn (end_of_turn), while summaries, profile facts, and recalled details are injected synchronously into the context at the start of the next turn — no manual triggers anywhere.
 
 - **Streaming replies**: Agent responses are pushed token-by-token via SSE (Server-Sent Events) for a typewriter effect
-- **Scripted scenario**: A built-in 5-step customer-service refund script covers Full → Balanced → Compact → Minimal budget modes; clicking a step auto-fills the input and budget parameters
-- **Real-time metrics panel**: The sidebar shows budget mode, retrieve/select/compress/order counts, and a token usage bar
-- **Context item list**: Displays each item's type, authority level, compression level (L0–L4), and token cost
-- **Prompt preview**: Expandable view of the actual context fragment injected into the LLM
+- **Scripted scenarios**: A customer-service refund script and a phone-recommendation script cover Full → Balanced → Compact → Minimal budget modes, with one-click full-script runs
+- **Context window panel**: Real-time budget mode, retrieve/select/compress/order counts, token usage bar, layer architecture, and the context item list (type / authority / compression level L0–L4 / token cost)
+- **Summaries & recall panel**: This-turn sync-injection report (recall keywords, injected summary types, profile item count, recall count), multi-type summaries (auto-generated per turn), background task list (auto-scheduled at end_of_turn), K-turn raw window stats, and this-turn auto-recall results with matched keywords
+- **User profile panel**: Five-dimension profile facts (auto-extracted in conversation; explicit dislikes become hard constraints), relationship profiles (persons + events), category preferences (3-tier with sibling-category fallback), and recommendation spec & acceptable-ad boundary (auto-derived in the recommendation scenario)
 - **Bilingual UI**: Chinese by default, one-click switch to English
+
+#### Frontend Guide
+
+1. Start the service, then open `http://localhost:8765/` in a browser (redirects to the demo page)
+2. Chat directly in the left-hand input; or click "Show demo script", pick a script, and click a step or "Run Full Script" for a guided tour
+3. Watch the right-hand panels update automatically as the conversation proceeds: in real-LLM mode, background summary/profile tasks finish 10–60 seconds after a turn ends and the panels refresh on their own — no trigger buttons to click
+
+![Main UI with context window panel](docs/images/demo-chat-window.png)
+
+![Summaries & recall panel: sync injection, auto summaries, background tasks](docs/images/demo-summaries.png)
+
+![User profile panel: five dimensions, spec & ad boundary](docs/images/demo-profile.png)
 
 ## Tech Stack
 
@@ -417,6 +429,8 @@ XContext/
 ├── .gitignore
 ├── docker-compose.yml          # Docker Compose: API + Redis
 ├── AGENTS.md                   # AI assistant project guide
+├── frontend/
+│   └── index.html              # Frontend demo (React 18 single-file, Agent chat UI)
 ├── backend/
 │   ├── app/
 │   │   ├── main.py             # FastAPI application entry
@@ -469,8 +483,6 @@ XContext/
 │   │       ├── sql.py          # SQLAlchemy repository
 │   │       ├── composite.py    # Redis + SQL composite repository
 │   │       └── archive.py      # Filesystem archive repository
-│   ├── static/                 # Frontend demo (Vue 3 single-file)
-│   │   └── index.html          # Agent chat UI
 │   ├── alembic/                # Database migration scripts
 │   │   ├── env.py
 │   │   └── versions/
