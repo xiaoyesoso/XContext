@@ -11,11 +11,13 @@ from fastapi.staticfiles import StaticFiles
 from app.api import (
     archive,
     chat,
+    policies,
     health,
     items,
     layers,
     metrics,
     orchestration,
+    policies,
     profiles,
     summaries,
     tasks,
@@ -61,6 +63,7 @@ app.include_router(chat.router)
 app.include_router(profiles.router)
 app.include_router(summaries.router)
 app.include_router(orchestration.router)
+app.include_router(policies.router)
 app.include_router(tasks.router)
 
 # Serve the frontend demo if a static directory exists.

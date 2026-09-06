@@ -17,11 +17,14 @@ from typing import Optional
 from uuid import uuid4
 
 from app.models import (
+    ComposeRequest,
+    ComposeResponse,
     ContextAuthority,
     ContextItem,
     ContextScope,
     ContextSource,
     ContextType,
+    PolicyExecution,
 )
 from app.services.profile_service import UserProfileService
 from app.services.summary_service import SummaryService
@@ -29,7 +32,9 @@ from app.services.summary_service import SummaryService
 from app.core.checkpoint import CheckpointManager
 from app.core.drift import ContextVerifier, extract_keywords
 from app.core.handoff import HandoffBuilder, HandoffStore
+from app.core.policy_orchestrator import PolicyOrchestrator
 from app.core.task_events import EventStore, EventType
+from app.core.tokenizer import estimate_item_tokens
 
 _DISLIKE_RE = re.compile(r"不(?:要|喜欢|考虑|接受)[:：\s]*([A-Za-z0-9\u4e00-\u9fff ]{1,20})")
 _BUDGET_RE = re.compile(r"(?:预算|价位|以内|不超过|budget)[^0-9]{0,6}([0-9]{3,6})|([0-9]{3,6})[^0-9]{0,4}(?:以内|以内|预算|块|元)")
@@ -71,6 +76,7 @@ class ChatOrchestrator:
         event_store: EventStore | None = None,
         checkpoint_manager: CheckpointManager | None = None,
         handoff_store: HandoffStore | None = None,
+        policy_orchestrator: PolicyOrchestrator | None = None,
     ):
         self._context = context_service
         self._summary = summary_service
@@ -81,6 +87,8 @@ class ChatOrchestrator:
             self._event_store
         )
         self._handoff_store = handoff_store or HandoffStore()
+        self._policy_orchestrator = policy_orchestrator or PolicyOrchestrator()
+        self._turn_token_budgets: dict[str, int] = {}
 
         self._background_tasks: set[asyncio.Task] = set()
         # session_id -> latest multi-type summary extraction result
@@ -103,6 +111,8 @@ class ChatOrchestrator:
         self._profile_facts: dict[str, list] = {}
         # session_id -> current turn counter for drift control
         self._turns: dict[str, int] = {}
+        # session_id -> latest policy execution
+        self._policy_executions: dict[str, PolicyExecution] = {}
 
     # ------------------------------------------------------------------ helpers
 
@@ -142,6 +152,7 @@ class ChatOrchestrator:
         session_id: str,
         user_message: str,
         scenario: Optional[str] = None,
+        token_budget: Optional[int] = None,
     ) -> dict:
         """Synchronously inject summaries, profile facts, and recalled details.
 
@@ -150,6 +161,8 @@ class ChatOrchestrator:
         """
         self._turns[session_id] = self._turns.get(session_id, 0) + 1
         turn = self._turns[session_id]
+        if token_budget is not None:
+            self._turn_token_budgets[session_id] = token_budget
 
         # Record user input event and detect constraint changes.
         self._event_store.append(
@@ -202,6 +215,20 @@ class ChatOrchestrator:
         report["recalls"] = recalls
         self._recalls[session_id] = recalls
 
+        # Run policy orchestration to decide what enters the window.
+        policy_execution = await self._policy_orchestrator.execute(
+            session_id=session_id,
+            user_id=self.user_for_session(session_id),
+            scenario=scenario,
+            user_message=user_message,
+            items=items,
+            state={"k_turn": k_state},
+            task_state=None,
+            token_budget=self._turn_token_budgets.get(session_id),
+        )
+        self._policy_executions[session_id] = policy_execution
+        report["policy_execution_id"] = policy_execution.execution_id
+
         self._injections[session_id] = report
 
         # Trigger a checkpoint when context usage is high or strategy signals it.
@@ -214,10 +241,33 @@ class ChatOrchestrator:
 
         return report
 
+    async def compose_window(self, request: ComposeRequest) -> ComposeResponse:
+        """Compose a context window using the policy orchestrator.
+
+        Falls back to the legacy ContextService pipeline when no policy
+        execution is available for the session.
+        """
+        execution = self._policy_executions.get(request.session_id)
+        if execution is None:
+            return await self._context.compose_window(request)
+
+        items = self._policy_orchestrator.get_selected_items(request.session_id)
+        prompt = self._policy_orchestrator.compose_prompt(items)
+        total_tokens = sum(
+            estimate_item_tokens(i.content_as_string()) for i in items
+        )
+        return ComposeResponse(
+            session_id=request.session_id,
+            strategy=request.strategy,
+            items=items,
+            prompt_fragment=prompt,
+            total_tokens=total_tokens,
+            item_count=len(items),
+            budget_mode=None,
+        )
+
     def _estimate_usage_ratio(self, items: list[ContextItem]) -> float:
         """Rough token-usage ratio for checkpoint triggering."""
-        from app.core.tokenizer import estimate_item_tokens
-
         total = sum(estimate_item_tokens(i.content_as_string()) for i in items)
         # Assume a typical 8k window for drift-control purposes.
         return min(1.0, total / 8192.0)
@@ -549,7 +599,15 @@ class ChatOrchestrator:
                 1 for i in items if i.type == ContextType.PROFILE
             ),
             "drift_control": self._build_drift_control_view(session_id),
+            "policy": self._build_policy_view(session_id),
         }
+
+    def _build_policy_view(self, session_id: str) -> dict | None:
+        """Return policy state for the frontend observation panel."""
+        state = self._policy_orchestrator.get_state(session_id)
+        if state is None:
+            return None
+        return state.model_dump(mode="json")
 
     def _build_drift_control_view(self, session_id: str) -> dict:
         """Return task-health state for the frontend observation panel."""

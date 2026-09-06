@@ -233,3 +233,77 @@ class ChatResponse(BaseModel):
     item_count: int
     budget_mode: Optional[BudgetMode] = None
     metrics: Optional[dict] = None
+
+
+# ---------------------------------------------------------------------------
+# Context policy models
+# ---------------------------------------------------------------------------
+
+class PolicySegment(BaseModel):
+    """One segment of a context policy describing a single action invocation."""
+
+    action_name: str = Field(min_length=1)
+    priority: int = Field(ge=1, le=10, default=5)
+    compression_level: int = Field(ge=0, le=3, default=0)
+    max_items: Optional[int] = Field(default=None, ge=1)
+    filters: list[str] = Field(default_factory=list)
+    enabled: bool = True
+
+
+class ContextPolicy(BaseModel):
+    """Declarative policy that maps scenario to ordered context actions."""
+
+    policy_id: str = Field(default_factory=lambda: str(uuid4()))
+    name: str = Field(min_length=1)
+    scenario: str = Field(min_length=1)
+    segments: list[PolicySegment] = Field(default_factory=list)
+    default: bool = False
+
+
+class SegmentExecution(BaseModel):
+    """Result of executing a single policy segment."""
+
+    action_name: str
+    priority: int
+    raw_tokens: int
+    compressed_tokens: int
+    item_count: int
+    compressed: bool = False
+    dropped: bool = False
+    error: Optional[str] = None
+    metadata: dict = Field(default_factory=dict)
+
+
+class PolicyMetrics(BaseModel):
+    """Effectiveness metrics for a policy execution."""
+
+    window_utilization: float = Field(ge=0.0, le=1.0)
+    critical_retention: float = Field(ge=0.0, le=1.0)
+    recall_hit_count: int = Field(ge=0, default=0)
+    dropped_segments: int = Field(ge=0, default=0)
+
+
+class PolicyExecution(BaseModel):
+    """Full record of a policy execution for a session."""
+
+    execution_id: str = Field(default_factory=lambda: str(uuid4()))
+    session_id: str
+    policy_id: str
+    policy_name: str
+    scenario: str
+    segments: list[SegmentExecution]
+    total_raw_tokens: int
+    total_used_tokens: int
+    budget_tokens: int
+    metrics: PolicyMetrics
+
+
+class PolicyState(BaseModel):
+    """Observed policy state returned to the frontend."""
+
+    policy_id: str
+    execution_id: Optional[str] = None
+    policy_name: str
+    scenario: str
+    metrics: Optional[PolicyMetrics] = None
+    segments: list[SegmentExecution] = Field(default_factory=list)

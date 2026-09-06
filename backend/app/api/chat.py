@@ -140,12 +140,17 @@ async def chat(request: ChatRequest) -> ChatResponse:
 
     # 1.5 Synchronous injection: completed summaries, profile facts, and
     # keyword-recalled details enter the context before window composition.
-    await get_chat_orchestrator().prepare_turn(
-        request.session_id, request.message, scenario=request.scenario
+    orchestrator = get_chat_orchestrator()
+    report = await orchestrator.prepare_turn(
+        session_id=request.session_id,
+        user_message=request.message,
+        scenario=request.scenario,
+        token_budget=request.token_budget.total if request.token_budget else None,
     )
 
-    # 2. Compose the context window.
-    compose_response = await service.compose_window(
+    # 2. Compose the context window via the policy orchestrator.
+    orchestrator = get_chat_orchestrator()
+    compose_response = await orchestrator.compose_window(
         ComposeRequest(
             session_id=request.session_id,
             strategy=request.strategy,
@@ -201,12 +206,17 @@ async def chat_stream(request: ChatRequest):
 
     # 1.5 Synchronous injection: completed summaries, profile facts, and
     # keyword-recalled details enter the context before window composition.
-    injection = await get_chat_orchestrator().prepare_turn(
-        request.session_id, request.message, scenario=request.scenario
+    orchestrator = get_chat_orchestrator()
+    injection = await orchestrator.prepare_turn(
+        session_id=request.session_id,
+        user_message=request.message,
+        scenario=request.scenario,
+        token_budget=request.token_budget.total if request.token_budget else None,
     )
 
     # 2. Compose the context window (synchronous, before streaming).
-    compose_response = await service.compose_window(
+    orchestrator = get_chat_orchestrator()
+    compose_response = await orchestrator.compose_window(
         ComposeRequest(
             session_id=request.session_id,
             strategy=request.strategy,

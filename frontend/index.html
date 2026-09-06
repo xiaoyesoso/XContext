@@ -300,6 +300,7 @@ const i18n = {
     constraintFailed: '添加约束失败：',
     errorPrefix: '错误：',
     tabWindow: '上下文窗口',
+    tabPolicy: '上下文策略',
     tabSummaries: '摘要与召回',
     tabProfile: '用户画像',
     // Long-task drift control
@@ -439,6 +440,7 @@ const i18n = {
     constraintFailed: 'Failed to add constraint: ',
     errorPrefix: 'Error: ',
     tabWindow: 'Context Window',
+    tabPolicy: 'Context Policy',
     tabSummaries: 'Summaries & Recall',
     tabProfile: 'User Profile',
     // Long-task drift control
@@ -659,6 +661,7 @@ function App() {
   const [adCheckResult, setAdCheckResult] = useState(null);
   const [profileLifecycle, setProfileLifecycle] = useState(null);
   const [driftControl, setDriftControl] = useState(null);
+  const [policyState, setPolicyState] = useState(null);
 
   const msgContainer = useRef(null);
   // Latest-state ref: imperative flows (runFullScript loop) read fresh state
@@ -976,6 +979,7 @@ function App() {
       setBoundaryInfo(p.boundary || null);
       setProfileLifecycle(st.profile_lifecycle || null);
       setDriftControl(st.drift_control || null);
+      setPolicyState(st.policy || null);
     } catch { /* observation polling is best-effort */ }
   }
 
@@ -1312,6 +1316,8 @@ function App() {
           <div className="sb-tabs">
             <div className={'sb-tab' + (sidebarTab === 'window' ? ' active' : '')}
                  onClick={() => switchTab('window')}>{t.tabWindow}</div>
+            <div className={'sb-tab' + (sidebarTab === 'policy' ? ' active' : '')}
+                 onClick={() => switchTab('policy')}>{t.tabPolicy}</div>
             <div className={'sb-tab' + (sidebarTab === 'summaries' ? ' active' : '')}
                  onClick={() => switchTab('summaries')}>{t.tabSummaries}</div>
             <div className={'sb-tab' + (sidebarTab === 'profile' ? ' active' : '')}
@@ -1508,7 +1514,39 @@ function App() {
             </React.Fragment>
           )}
 
-          {/* ============ Tab: Summaries & Recall ============ */}
+          {/* ============ Tab: Context Policy ============ */}
+          {sidebarTab === 'policy' && (
+            <div className="sb-section">
+              <h3>{t.tabPolicy}</h3>
+              {policyState ? (
+                <React.Fragment>
+                  <div style={{ fontSize: '12px', color: 'var(--text-dim)', marginBottom: '10px' }}>
+                    {policyState.policy_name} · {policyState.scenario}
+                  </div>
+                  {policyState.metrics && (
+                    <div className="metric-grid">
+                      <div className="metric-card"><div className="metric-val">{Math.round((policyState.metrics.window_utilization || 0) * 100)}%</div><div className="metric-label">窗口利用率</div></div>
+                      <div className="metric-card"><div className="metric-val">{Math.round((policyState.metrics.critical_retention || 0) * 100)}%</div><div className="metric-label">关键信息保留</div></div>
+                      <div className="metric-card"><div className="metric-val">{policyState.metrics.recall_hit_count || 0}</div><div className="metric-label">召回命中</div></div>
+                    </div>
+                  )}
+                  {policyState.segments && policyState.segments.map((segment, idx) => (
+                    <div key={idx} style={{ marginTop: '8px', padding: '8px', border: '1px solid var(--border)', borderRadius: '6px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                        <span>{segment.action_name}</span>
+                        <span style={{ color: segment.dropped ? 'var(--red)' : 'var(--green)' }}>{segment.dropped ? '已裁剪' : segment.compressed ? '已压缩' : '已注入'}</span>
+                      </div>
+                      <div style={{ color: 'var(--text-dim)', fontSize: '11px', marginTop: '4px' }}>
+                        {segment.raw_tokens} → {segment.compressed_tokens} tokens · {segment.item_count} 项
+                      </div>
+                    </div>
+                  ))}
+                </React.Fragment>
+              ) : <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>发送消息后自动显示策略执行结果。</div>}
+            </div>
+          )}
+
+          {/* ============ Tab: Summaries ============ */}
           {sidebarTab === 'summaries' && (
             <React.Fragment>
               {/* Sync injection report for this turn */}

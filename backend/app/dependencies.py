@@ -10,7 +10,9 @@ from app.core.user_profile import MockUserProfileExtractor, UserProfileExtractor
 from app.repositories.archive import LocalArchiveRepository
 from app.repositories.base import ContextRepository
 from app.repositories.memory import InMemoryContextRepository
+from app.core.context_actions import ActionServices
 from app.services.context_service import ContextService
+from app.services.policy_service import PolicyService
 from app.services.profile_service import UserProfileService
 from app.services.summary_service import SummaryService
 
@@ -57,10 +59,20 @@ _summary_service = SummaryService(
 # injection at the start of the next turn (summaries / profile / recall).
 from app.services.chat_orchestrator import ChatOrchestrator  # noqa: E402
 
+# Policy orchestration: actions retrieve context sources; policy segments decide
+# what enters the window and in which order.
+_policy_service = PolicyService()
+_policy_service.orchestrator._services = ActionServices(
+    context_service=_context_service,
+    profile_service=_user_profile_service,
+    summary_service=_summary_service,
+)
+
 _chat_orchestrator = ChatOrchestrator(
     context_service=_context_service,
     summary_service=_summary_service,
     profile_service=_user_profile_service,
+    policy_orchestrator=_policy_service.orchestrator,
 )
 
 
@@ -102,3 +114,8 @@ def get_summary_service() -> SummaryService:
 def get_chat_orchestrator() -> "ChatOrchestrator":
     """Return the conversation orchestrator instance."""
     return _chat_orchestrator
+
+
+def get_policy_service() -> PolicyService:
+    """Return the policy service instance."""
+    return _policy_service
