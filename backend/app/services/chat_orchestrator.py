@@ -26,69 +26,13 @@ from app.models import (
 from app.services.profile_service import UserProfileService
 from app.services.summary_service import SummaryService
 
-# Keywords that carry no recall signal.
-_STOPWORDS = {
-    "你好", "您好", "谢谢", "请问", "一下", "可以", "这个", "那个",
-    "我想", "我要", "帮我", "直接", "告诉", "什么", "怎么", "顺便",
-    "看看", "哪些", "哪个", "还是", "就是", "然后", "一份", "目前",
-    "现在", "最近", "非常", "特别", "真的", "应该", "可能", "主要",
-    "超过", "以内", "左右", "大概", "大约",
-    "the", "and", "for", "you", "please", "help", "can", "with",
-}
+from app.core.checkpoint import CheckpointManager
+from app.core.drift import ContextVerifier, extract_keywords
+from app.core.handoff import HandoffBuilder, HandoffStore
+from app.core.task_events import EventStore, EventType
 
-# Grammatical (particle) characters used to split Chinese runs into chunks.
-_PARTICLE_CHARS = "的是了吗呢吧啊嘛呀我你他她它们个台件部很也挺都还就才再最跟和与或要会能不"
-
-_CN_RUN_RE = re.compile(r"[\u4e00-\u9fff]{2,}")
-_TOKEN_RE = re.compile(r"[A-Za-z][A-Za-z0-9_-]{1,15}|[0-9$¥][0-9.,]{2,10}")
 _DISLIKE_RE = re.compile(r"不(?:要|喜欢|考虑|接受)[:：\s]*([A-Za-z0-9\u4e00-\u9fff ]{1,20})")
 _BUDGET_RE = re.compile(r"(?:预算|价位|以内|不超过|budget)[^0-9]{0,6}([0-9]{3,6})|([0-9]{3,6})[^0-9]{0,4}(?:以内|以内|预算|块|元)")
-
-
-def _clean_token(token: str) -> str:
-    """Strip stopword prefixes/suffixes from a Chinese token."""
-    changed = True
-    while changed and token:
-        changed = False
-        for stop in _STOPWORDS:
-            if len(token) > len(stop) and token.startswith(stop):
-                token = token[len(stop):]
-                changed = True
-            if len(token) > len(stop) and token.endswith(stop):
-                token = token[: -len(stop)]
-                changed = True
-    return token
-
-
-def extract_keywords(message: str, limit: int = 4) -> list[str]:
-    """Extract distinctive keywords from a user message for detail recall."""
-    if not message:
-        return []
-    tokens: list[str] = []
-    # Full Chinese runs, split on particles into content chunks.
-    for run in _CN_RUN_RE.findall(message):
-        for chunk in re.split(f"[{_PARTICLE_CHARS}]", run):
-            chunk = chunk.strip()
-            if len(chunk) >= 2:
-                tokens.append(chunk)
-    # Latin words and numbers/prices.
-    tokens.extend(_TOKEN_RE.findall(message))
-
-    seen: set[str] = set()
-    keywords: list[str] = []
-    for token in tokens:
-        token = _clean_token(token)
-        if not token or token.lower() in _STOPWORDS:
-            continue
-        if token.isdigit() and len(token) < 3:
-            continue
-        if token in seen:
-            continue
-        seen.add(token)
-        keywords.append(token)
-        if len(keywords) >= limit:
-            break
-    return keywords
 
 
 def extract_dislike_brand(content: str) -> Optional[str]:
@@ -124,10 +68,19 @@ class ChatOrchestrator:
         context_service,
         summary_service: SummaryService,
         profile_service: UserProfileService,
+        event_store: EventStore | None = None,
+        checkpoint_manager: CheckpointManager | None = None,
+        handoff_store: HandoffStore | None = None,
     ):
         self._context = context_service
         self._summary = summary_service
         self._profile = profile_service
+
+        self._event_store = event_store or EventStore()
+        self._checkpoint_manager = checkpoint_manager or CheckpointManager(
+            self._event_store
+        )
+        self._handoff_store = handoff_store or HandoffStore()
 
         self._background_tasks: set[asyncio.Task] = set()
         # session_id -> latest multi-type summary extraction result
@@ -148,6 +101,8 @@ class ChatOrchestrator:
         self._specs: dict[str, dict] = {}
         # user_id -> last extracted profile facts
         self._profile_facts: dict[str, list] = {}
+        # session_id -> current turn counter for drift control
+        self._turns: dict[str, int] = {}
 
     # ------------------------------------------------------------------ helpers
 
@@ -193,6 +148,25 @@ class ChatOrchestrator:
         Runs at the start of every turn, right after the user message is
         ingested and before the context window is composed.
         """
+        self._turns[session_id] = self._turns.get(session_id, 0) + 1
+        turn = self._turns[session_id]
+
+        # Record user input event and detect constraint changes.
+        self._event_store.append(
+            session_id,
+            EventType.USER_INPUT,
+            payload={"text": user_message},
+            turn=turn,
+        )
+        changed = self._detect_constraint_change(user_message)
+        if changed:
+            self._event_store.append(
+                session_id,
+                EventType.CONSTRAINT_CHANGED,
+                payload=changed,
+                turn=turn,
+            )
+
         items = await self._context.list_items(session_id)
         report: dict = {
             "summary_types": [],
@@ -229,7 +203,65 @@ class ChatOrchestrator:
         self._recalls[session_id] = recalls
 
         self._injections[session_id] = report
+
+        # Trigger a checkpoint when context usage is high or strategy signals it.
+        if self._checkpoint_manager.should_checkpoint(
+            turn,
+            usage_ratio=self._estimate_usage_ratio(items),
+            denied_violation=False,
+        ):
+            self._run_checkpoint_later(session_id, items, turn)
+
         return report
+
+    def _estimate_usage_ratio(self, items: list[ContextItem]) -> float:
+        """Rough token-usage ratio for checkpoint triggering."""
+        from app.core.tokenizer import estimate_item_tokens
+
+        total = sum(estimate_item_tokens(i.content_as_string()) for i in items)
+        # Assume a typical 8k window for drift-control purposes.
+        return min(1.0, total / 8192.0)
+
+    def _run_checkpoint_later(self, session_id: str, items: list[ContextItem], turn: int) -> None:
+        """Schedule a checkpoint without blocking the chat response."""
+        def run_checkpoint():
+            self._checkpoint_manager.run_checkpoint(
+                session_id,
+                items,
+                goal=self._extract_goal(session_id),
+                task_state=None,
+                turn=turn,
+            )
+
+        try:
+            loop = asyncio.get_running_loop()
+            loop.call_soon(run_checkpoint)
+        except RuntimeError:
+            run_checkpoint()
+
+    def _extract_goal(self, session_id: str) -> Optional[str]:
+        """Pull the original goal from the first user input event."""
+        for event in self._event_store.list_events(session_id):
+            if event.type == EventType.USER_INPUT:
+                return event.payload.get("text")
+        return None
+
+    @staticmethod
+    def _detect_constraint_change(message: str) -> Optional[dict]:
+        """Detect simple 'change X to Y' patterns in Chinese user messages."""
+        import re
+        patterns = [
+            r"(?:预算|价格|价位)[^0-9]{0,6}改[为成]?\s*([0-9]{3,6})",
+            r"(?:改|改成|改为|调整到|更新为)\s*([^，。]{2,20})\s*(?:为|成|到)\s*([^，。]{2,20})",
+        ]
+        for pat in patterns:
+            match = re.search(pat, message)
+            if match:
+                groups = match.groups()
+                if len(groups) == 2:
+                    return {"old": groups[0].strip(), "new": groups[1].strip()}
+                return {"new": groups[0].strip()}
+        return None
 
     async def _inject_summaries(self, session_id: str, result: dict) -> list[str]:
         """Replace auto-injected summary items with the latest result."""
@@ -317,7 +349,18 @@ class ChatOrchestrator:
         if not items:
             return
 
-        # --- Task 1: multi-type summary extraction -------------------------
+        # Run construction tasks concurrently so a slow summary LLM does not
+        # block profile extraction or spec derivation.
+        await asyncio.gather(
+            self._run_summary_extraction(session_id, items),
+            self._run_profile_extraction(session_id, user_id, items, scenario),
+            self._run_spec_derivation(session_id, user_id, scenario),
+            return_exceptions=True,
+        )
+
+    async def _run_summary_extraction(
+        self, session_id: str, items: list[ContextItem]
+    ) -> None:
         record = self._register_task(session_id, "summary_extract", len(items))
         try:
             result = await self._summary.extract_summaries(session_id, items)
@@ -332,11 +375,60 @@ class ChatOrchestrator:
         except Exception as exc:  # noqa: BLE001 - background task isolation
             self._finish_task(record, error=str(exc))
 
-        # --- Task 2: five-dimension profile extraction ---------------------
-        facts: list = []
+    def _maybe_create_snapshot(self, session_id: str, turn: int) -> None:
+        """Create a trusted snapshot every SNAPSHOT_INTERVAL turns."""
+        SNAPSHOT_INTERVAL = 10
+        if turn > 0 and turn % SNAPSHOT_INTERVAL == 0:
+            items = asyncio.get_event_loop().run_until_complete(
+                self._context.list_items(session_id)
+            )
+            constraints = [
+                i.content_as_string()
+                for i in items
+                if i.authority.value in ("hard_rule", "denied")
+            ]
+            facts = [
+                i.content_as_string()
+                for i in items
+                if i.type.value == "fact" and i.authority.value == "confirmed"
+            ]
+            self._event_store.create_snapshot(
+                session_id,
+                goal=self._extract_goal(session_id),
+                hard_constraints=constraints,
+                confirmed_facts=facts,
+                task_state={"turn": turn, "item_count": len(items)},
+                turn=turn,
+            )
+
+    async def _run_profile_extraction(
+        self,
+        session_id: str,
+        user_id: str,
+        items: list[ContextItem],
+        scenario: Optional[str],
+    ) -> None:
         record = self._register_task(session_id, "profile_extract", len(items))
         try:
-            facts = await self._profile.extract_facts(user_id, items)
+            facts = await self._profile.extract_facts(
+                user_id,
+                items,
+                time_level="current",
+                source="conversation_inference",
+                session_id=session_id,
+                domain=scenario,
+            )
+            # Lifecycle classification: explicit dislikes / hard requirements
+            # are current-level explicit statements; soft inferences stay as
+            # candidate observations until they repeat across sessions.
+            for fact in facts:
+                if fact.is_dislike or fact.is_hard_requirement:
+                    fact.source = "explicit_statement"  # type: ignore[assignment]
+                    fact.confirmation_type = "scenario"
+                    fact.time_level = "current"  # type: ignore[assignment]
+                else:
+                    fact.source = "conversation_inference"  # type: ignore[assignment]
+                    fact.time_level = "candidate"  # type: ignore[assignment]
             existing = {
                 i.content for i in items if i.type == ContextType.PROFILE
             }
@@ -356,18 +448,33 @@ class ChatOrchestrator:
         except Exception as exc:  # noqa: BLE001
             self._finish_task(record, error=str(exc))
 
-        # --- Task 3: recommendation spec derivation (scenario-aware) --------
-        if scenario == "recommendation":
-            record = self._register_task(session_id, "spec_derivation", len(items))
-            try:
-                spec_state = await self._derive_spec(user_id, facts)
-                self._specs[session_id] = spec_state
-                self._finish_task(
-                    record,
-                    result={"price_range": spec_state["spec"]["price_range"]},
-                )
-            except Exception as exc:  # noqa: BLE001
-                self._finish_task(record, error=str(exc))
+        # Record agent reply event after profile extraction so the event stream
+        # can see what was generated in this turn.
+        self._event_store.append(
+            session_id,
+            EventType.AGENT_REPLY,
+            payload={"new_facts": new_count},
+            turn=self._turns.get(session_id, 1),
+        )
+        self._maybe_create_snapshot(session_id, self._turns.get(session_id, 1))
+
+    async def _run_spec_derivation(
+        self, session_id: str, user_id: str, scenario: Optional[str]
+    ) -> None:
+        if scenario != "recommendation":
+            return
+        items = await self._context.list_items(session_id)
+        facts = self._profile_facts.get(user_id, [])
+        record = self._register_task(session_id, "spec_derivation", len(items))
+        try:
+            spec_state = await self._derive_spec(user_id, facts)
+            self._specs[session_id] = spec_state
+            self._finish_task(
+                record,
+                result={"price_range": spec_state["spec"]["price_range"]},
+            )
+        except Exception as exc:  # noqa: BLE001
+            self._finish_task(record, error=str(exc))
 
     async def _derive_spec(self, user_id: str, facts: list) -> dict:
         """Derive a recommendation spec + acceptable-ad boundary from facts."""
@@ -437,9 +544,51 @@ class ChatOrchestrator:
                 "spec": (self._specs.get(session_id) or {}).get("spec"),
                 "boundary": (self._specs.get(session_id) or {}).get("boundary"),
             },
+            "profile_lifecycle": self._build_lifecycle_view(user_id),
             "profile_item_count": sum(
                 1 for i in items if i.type == ContextType.PROFILE
             ),
+            "drift_control": self._build_drift_control_view(session_id),
+        }
+
+    def _build_drift_control_view(self, session_id: str) -> dict:
+        """Return task-health state for the frontend observation panel."""
+        events = self._event_store.list_events(session_id)
+        snapshots = self._event_store.list_snapshots(session_id)
+        checkpoints = [
+            e for e in events
+            if e.type.value in ("checkpoint_passed", "checkpoint_failed")
+        ]
+        drifts = [
+            e for e in events if e.type.value == "drift_detected"
+        ]
+        last_checkpoint = checkpoints[-1].payload if checkpoints else None
+        last_drift = drifts[-1].payload if drifts else None
+        return {
+            "events_count": self._event_store.count(session_id),
+            "snapshots_count": len(snapshots),
+            "checkpoints_count": len(checkpoints),
+            "drifts_count": len(drifts),
+            "last_checkpoint": last_checkpoint,
+            "last_drift_report": last_drift,
+            "latest_snapshot_id": snapshots[-1].snapshot_id if snapshots else None,
+            "rebuilt_state": self._event_store.rebuild_state(session_id),
+        }
+
+    def _build_lifecycle_view(self, user_id: str) -> dict:
+        """Group profile facts by time level for the observation panel."""
+        facts = self._profile.list_facts(user_id)
+        return {
+            "current": [
+                f.model_dump(mode="json") for f in facts if f.time_level == "current"
+            ],
+            "candidate": [
+                f.model_dump(mode="json") for f in facts if f.time_level == "candidate"
+            ],
+            "long_term": [
+                f.model_dump(mode="json") for f in facts if f.time_level == "long-term"
+            ],
+            "events": self._profile.list_lifecycle_events(user_id)[:20],
         }
 
     async def wait_for_background_tasks(self, timeout: float = 10.0) -> None:

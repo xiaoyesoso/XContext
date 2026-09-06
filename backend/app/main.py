@@ -18,6 +18,7 @@ from app.api import (
     orchestration,
     profiles,
     summaries,
+    tasks,
     windows,
 )
 from app.core.logging_config import configure_logging, get_logger
@@ -60,6 +61,7 @@ app.include_router(chat.router)
 app.include_router(profiles.router)
 app.include_router(summaries.router)
 app.include_router(orchestration.router)
+app.include_router(tasks.router)
 
 # Serve the frontend demo if a static directory exists.
 # Resolution order: STATIC_DIR env override -> repo layout (XContext/frontend)

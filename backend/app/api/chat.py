@@ -55,6 +55,12 @@ def _system_prompt(system_context: str) -> str:
 async def _call_llm(system_context: str, user_message: str) -> str:
     """Call the LLM and return the full reply text."""
     client = _get_chat_client()
+    # GLM-5.3 series allocates tokens to both reasoning_content and content.
+    # Use a larger token budget and lower reasoning effort to ensure final
+    # content is emitted instead of being consumed by the thinking trace.
+    extra_body = None
+    if settings.base_url and "bigmodel.cn" in settings.base_url:
+        extra_body = {"reasoning_effort": "low"}
     response = await client.chat.completions.create(
         model=settings.pro_llm_model,
         messages=[
@@ -62,7 +68,8 @@ async def _call_llm(system_context: str, user_message: str) -> str:
             {"role": "user", "content": user_message},
         ],
         temperature=0.7,
-        max_tokens=1024,
+        max_tokens=4096,
+        extra_body=extra_body,
     )
     return response.choices[0].message.content or ""
 
@@ -230,6 +237,10 @@ async def chat_stream(request: ChatRequest):
                 await asyncio.sleep(0.03)
         else:
             client = _get_chat_client()
+            # Keep streaming config in sync with the non-streaming _call_llm.
+            extra_body = None
+            if settings.base_url and "bigmodel.cn" in settings.base_url:
+                extra_body = {"reasoning_effort": "low"}
             stream = await client.chat.completions.create(
                 model=settings.pro_llm_model,
                 messages=[
@@ -237,8 +248,9 @@ async def chat_stream(request: ChatRequest):
                     {"role": "user", "content": request.message},
                 ],
                 temperature=0.7,
-                max_tokens=1024,
+                max_tokens=4096,
                 stream=True,
+                extra_body=extra_body,
             )
             async for chunk in stream:
                 if chunk.choices and chunk.choices[0].delta.content:

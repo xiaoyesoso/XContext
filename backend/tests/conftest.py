@@ -2,13 +2,14 @@ import os
 import shutil
 from pathlib import Path
 
+# Force the mock summarizer during tests to avoid real LLM API calls.
+# This must run before app dependencies are imported.
+os.environ["SUMMARIZER_MODE"] = "mock"
+
 import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
-
-# Force the mock summarizer during tests to avoid real LLM API calls.
-os.environ["SUMMARIZER_MODE"] = "mock"
 
 
 @pytest.fixture(autouse=True)

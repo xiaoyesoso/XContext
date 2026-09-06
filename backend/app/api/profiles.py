@@ -105,6 +105,18 @@ class AdCheckRequest(BaseModel):
     candidate_brand: str | None = None
 
 
+class LifecycleAnalyzeRequest(BaseModel):
+    """Request body for running offline lifecycle analysis."""
+
+    user_id: str = Field(min_length=1)
+
+
+class FinalizeConversationRequest(BaseModel):
+    """Request body for end-of-conversation consolidation."""
+
+    session_id: str = Field(min_length=1)
+
+
 # ------------------------------------------------------------------ endpoints
 
 
@@ -326,4 +338,51 @@ async def check_ad(user_id: str, request: AdCheckRequest) -> dict:
             price=request.candidate_price, brand=request.candidate_brand
         ),
         "boundary": boundary.to_dict(),
+    }
+
+
+@router.post("/lifecycle/offline-analyze")
+async def offline_analyze(request: LifecycleAnalyzeRequest) -> dict:
+    """Run offline lifecycle analysis for a user.
+
+    Promotes/demotes facts across time levels and resolves conflicts.
+    """
+    service = get_user_profile_service()
+    report = service.run_lifecycle(request.user_id)
+    facts = service.list_facts(request.user_id)
+    return {
+        "user_id": request.user_id,
+        "report": report,
+        "facts": [f.model_dump(mode="json") for f in facts],
+    }
+
+
+@router.post("/lifecycle/finalize-conversation")
+async def finalize_conversation(request: FinalizeConversationRequest) -> dict:
+    """Consolidate facts from a single conversation."""
+    from app.services.chat_orchestrator import ChatOrchestrator
+
+    user_id = ChatOrchestrator.user_for_session(request.session_id)
+    service = get_user_profile_service()
+    report = service.finalize_conversation(user_id, request.session_id)
+    facts = service.list_facts(user_id)
+    return {
+        "session_id": request.session_id,
+        "user_id": user_id,
+        "report": report,
+        "facts": [f.model_dump(mode="json") for f in facts],
+    }
+
+
+@router.get("/lifecycle/{user_id}")
+async def get_lifecycle(user_id: str) -> dict:
+    """Return a user's profile facts grouped by lifecycle time level."""
+    service = get_user_profile_service()
+    facts = service.list_facts(user_id)
+    return {
+        "user_id": user_id,
+        "current": [f.model_dump(mode="json") for f in facts if f.time_level == "current"],
+        "candidate": [f.model_dump(mode="json") for f in facts if f.time_level == "candidate"],
+        "long_term": [f.model_dump(mode="json") for f in facts if f.time_level == "long-term"],
+        "events": service.list_lifecycle_events(user_id),
     }

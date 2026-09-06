@@ -8,7 +8,7 @@ context.
 """
 
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Literal, Optional
 from uuid import uuid4
 
 from openai import AsyncOpenAI
@@ -28,7 +28,7 @@ from app.models import (
 
 
 class ProfileFact(BaseModel):
-    """A single extracted profile fact with dimension and source back-reference."""
+    """A single extracted profile fact with dimension and lifecycle metadata."""
 
     id: str = Field(default_factory=lambda: str(uuid4()))
     dimension: ProfileDimension
@@ -40,6 +40,30 @@ class ProfileFact(BaseModel):
     is_hard_requirement: bool = False
     confidence: float = Field(ge=0.0, le=1.0, default=0.8)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    # Lifecycle fields (Decision 12 lifecycle extension).
+    time_level: Literal["current", "candidate", "long-term"] = "candidate"
+    source: Literal[
+        "explicit_statement", "behavior", "conversation_inference", "external_system"
+    ] = "conversation_inference"
+    domain: Optional[str] = None
+    status: Literal["active", "weakened", "expired"] = "active"
+    session_id: Optional[str] = None
+    session_ids: list[str] = Field(default_factory=list)
+    evidence_count: int = Field(ge=0, default=1)
+    first_evidence_at: Optional[datetime] = None
+    latest_evidence_at: Optional[datetime] = None
+    last_evidence_at: Optional[datetime] = None
+    expires_at: Optional[datetime] = None
+    confirmation_type: Literal["none", "implicit", "hesitant", "scenario", "long_term"] = "none"
+    is_correction: bool = False
+
+    # 4C stability scores (0-100 total).
+    stability_score: float = Field(ge=0.0, le=100.0, default=0.0)
+    score_count: float = Field(ge=0.0, le=25.0, default=0.0)
+    score_continuity: float = Field(ge=0.0, le=25.0, default=0.0)
+    score_cross_context: float = Field(ge=0.0, le=25.0, default=0.0)
+    score_confirmation: float = Field(ge=0.0, le=25.0, default=0.0)
 
     def token_cost(self) -> int:
         """Estimate the token cost of this profile fact."""

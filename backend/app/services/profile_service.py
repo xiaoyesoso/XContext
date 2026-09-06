@@ -1,10 +1,12 @@
 """Application service for the user-profile subsystem (Decision 12).
 
 Orchestrates UserProfileExtractor, RelationshipProfileStore,
-CategoryPreferenceStore, ProfileSelector, and the recommendation-spec
-builders on top of the shared ContextService repository.
+CategoryPreferenceStore, ProfileSelector, the recommendation-spec
+builders, and the profile-lifecycle manager on top of the shared
+ContextService repository.
 """
 
+from datetime import datetime, timezone
 from typing import Optional
 
 from app.core.category_preference import (
@@ -13,6 +15,7 @@ from app.core.category_preference import (
     OrderItem,
 )
 from app.core.metrics import MetricsCollector, ProfileMetrics
+from app.core.profile_lifecycle import ProfileLifecycleManager
 from app.core.profile_selector import ProfileSelector
 from app.core.recommendation_spec import (
     AcceptableAdBoundary,
@@ -44,6 +47,7 @@ class UserProfileService:
         category_store: Optional[CategoryPreferenceStore] = None,
         profile_selector: Optional[ProfileSelector] = None,
         metrics_collector: Optional[MetricsCollector] = None,
+        lifecycle_manager: Optional[ProfileLifecycleManager] = None,
     ):
         self._extractor = extractor or MockUserProfileExtractor()
         self._relationships = relationship_store or RelationshipProfileStore()
@@ -54,14 +58,39 @@ class UserProfileService:
         self._metrics = metrics_collector
         self._spec_builder = RecommendationSpecBuilder()
         self._boundary_builder = AcceptableAdBoundaryBuilder()
+        self._lifecycle = lifecycle_manager or ProfileLifecycleManager()
+        # In-memory index of extracted profile facts by user.
+        self._facts: dict[str, list[ProfileFact]] = {}
 
     # ------------------------------------------------------------- extraction
 
     async def extract_facts(
-        self, user_id: str, items: list[ContextItem]
+        self,
+        user_id: str,
+        items: list[ContextItem],
+        time_level: str = "candidate",
+        source: str = "conversation_inference",
+        session_id: Optional[str] = None,
+        domain: Optional[str] = None,
     ) -> list[ProfileFact]:
-        """Extract profile facts from context items and record metrics."""
+        """Extract profile facts from context items and record metrics.
+
+        Annotates each fact with lifecycle metadata before returning it.
+        """
         facts = await self._extractor.extract(items)
+        now = datetime.now(timezone.utc)
+        for fact in facts:
+            fact.time_level = time_level  # type: ignore[assignment]
+            fact.source = source  # type: ignore[assignment]
+            fact.domain = domain
+            fact.session_id = session_id
+            if session_id and session_id not in fact.session_ids:
+                fact.session_ids.append(session_id)
+            fact.evidence_count = max(1, fact.evidence_count)
+            fact.first_evidence_at = fact.first_evidence_at or now
+            fact.latest_evidence_at = now
+            fact.last_evidence_at = now
+        self._facts.setdefault(user_id, []).extend(facts)
         if self._metrics is not None:
             by_dimension: dict[str, int] = {}
             for fact in facts:
@@ -80,6 +109,34 @@ class UserProfileService:
     def persist_fact(self, user_id: str, fact: ProfileFact) -> ContextItem:
         """Convert a profile fact into a context item (caller persists it)."""
         return fact_to_context_item(fact)
+
+    def list_facts(self, user_id: str) -> list[ProfileFact]:
+        """Return all profile facts known for a user."""
+        return list(self._facts.get(user_id, []))
+
+    def list_facts_by_time_level(self, user_id: str, time_level: str) -> list[ProfileFact]:
+        """Return profile facts filtered by time level."""
+        return [f for f in self._facts.get(user_id, []) if f.time_level == time_level]
+
+    # ---------------------------------------------------------- lifecycle
+
+    def run_lifecycle(self, user_id: str) -> dict:
+        """Run offline lifecycle analysis for a user."""
+        facts = self._facts.get(user_id, [])
+        return self._lifecycle.offline_analyze(user_id, facts)
+
+    def finalize_conversation(
+        self, user_id: str, session_id: str
+    ) -> dict:
+        """Consolidate facts produced during a single conversation."""
+        session_facts = [
+            f for f in self._facts.get(user_id, []) if f.session_id == session_id
+        ]
+        return self._lifecycle.finalize_conversation(user_id, session_facts)
+
+    def list_lifecycle_events(self, user_id: str) -> list[dict]:
+        """Return lifecycle events for a user, newest first."""
+        return [e.to_dict() for e in self._lifecycle.list_events(user_id)]
 
     def list_profile_items(
         self, items: list[ContextItem]

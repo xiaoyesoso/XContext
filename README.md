@@ -88,7 +88,7 @@ Window_t = Inject(
 
 1. 启动服务后，浏览器打开 `http://localhost:8765/`（自动跳转到 Demo 页面）
 2. 在左侧输入框直接对话；或点击"显示剧本"选择剧本后，点击步骤填充或"运行完整剧本"自动演示
-3. 对话过程中观察右侧三个面板自动更新：每轮 Agent 回复结束后，摘要提取与画像构造任务立即转入后台异步处理，面板随任务完成自动刷新，全程无需点击任何触发按钮
+3. 对话过程中观察右侧面板自动更新：每轮 Agent 回复结束后，摘要提取与画像构造任务立即转入后台异步处理，面板随任务完成自动刷新，全程无需点击任何触发按钮。当前右侧包含：上下文窗口（含长任务健康度）、摘要与召回、用户画像
 
 ![主界面与上下文窗口面板](docs/images/demo-chat-window.png)
 
@@ -104,7 +104,7 @@ Window_t = Inject(
 - **关系存储**：SQLAlchemy 2.0 + Alembic
 - **热缓存**：Redis
 - **Token 估算**：tiktoken
-- **LLM 集成**：OpenAI SDK 兼容（SiliconFlow 等）
+- **LLM 集成**：OpenAI SDK 兼容（智谱、SiliconFlow 等）
 - **测试**：pytest + httpx
 
 ## 快速开始

@@ -302,6 +302,20 @@ const i18n = {
     tabWindow: '上下文窗口',
     tabSummaries: '摘要与召回',
     tabProfile: '用户画像',
+    // Long-task drift control
+    taskHealth: '长任务健康度',
+    taskHealthDesc: '事件溯源、Checkpoint 校准与漂移检测随对话自动运行；检测到异常时给出修复建议。',
+    taskHealthy: '健康',
+    taskDriftDetected: '检测到漂移',
+    taskEvents: '事件',
+    taskSnapshots: '快照',
+    taskCheckpoints: '检查点',
+    taskDrifts: '漂移',
+    taskLatestCheckpoint: '最新检查点',
+    taskLatestDrift: '最新漂移',
+    taskLatestSnapshot: '最新快照',
+    taskRebuiltState: '重建状态',
+    taskNoDriftControl: '暂无任务健康数据。发送消息后自动更新。',
     // Layers & archive
     layerArchitecture: '分层上下文架构',
     layerHint: '晋升规则：authority=confirmed 或 priority≥100。每项可晋升到上一层（COPY）或归档到冷存储。',
@@ -354,6 +368,16 @@ const i18n = {
     noFacts: '发送消息后，画像事实在对话过程中自动提取（稍候片刻）。',
     dislike: '厌恶→硬约束',
     hardReq: '硬性要求',
+    lifecycle: '画像生命周期（current / candidate / long-term）',
+    lifecycleDesc: '实时提取的显式表达进入 current，跨会话重复后沉淀为 candidate；离线分析按 4C 稳定性评分决定 candidate 是否晋升为 long-term。',
+    lifecycleCurrent: '当前画像 current',
+    lifecycleCandidate: '候选画像 candidate',
+    lifecycleLongTerm: '长期画像 long-term',
+    lifecycleEvents: '生命周期事件',
+    noLifecycle: '暂无画像。发送消息后自动提取。',
+    stabilityScore: '稳定性',
+    source: '来源',
+    status: '状态',
     relationships: '关系画像（人物 + 事件）',
     seedDemoBtn: '✚ 添加演示数据',
     refresh: '↻ 刷新',
@@ -417,6 +441,20 @@ const i18n = {
     tabWindow: 'Context Window',
     tabSummaries: 'Summaries & Recall',
     tabProfile: 'User Profile',
+    // Long-task drift control
+    taskHealth: 'Task Health',
+    taskHealthDesc: 'Event sourcing, checkpoint calibration, and drift detection run automatically during the conversation; repair suggestions appear when anomalies are detected.',
+    taskHealthy: 'Healthy',
+    taskDriftDetected: 'Drift detected',
+    taskEvents: 'Events',
+    taskSnapshots: 'Snapshots',
+    taskCheckpoints: 'Checkpoints',
+    taskDrifts: 'Drifts',
+    taskLatestCheckpoint: 'Latest checkpoint',
+    taskLatestDrift: 'Latest drift',
+    taskLatestSnapshot: 'Latest snapshot',
+    taskRebuiltState: 'Rebuilt state',
+    taskNoDriftControl: 'No task health data yet. Send a message to update.',
     // Layers & archive
     layerArchitecture: 'Layered Context',
     layerHint: 'Promotion rules: authority=confirmed or priority≥100. Each item can be promoted (COPY) to the next layer or archived to cold storage.',
@@ -469,6 +507,16 @@ const i18n = {
     noFacts: 'Send a message — profile facts are extracted automatically during the conversation (may take a moment).',
     dislike: 'dislike→hard rule',
     hardReq: 'hard req',
+    lifecycle: 'Profile Lifecycle (current / candidate / long-term)',
+    lifecycleDesc: 'Explicit expressions extracted in real time become current; repeated across sessions they settle into candidate; offline analysis promotes candidate to long-term based on the 4C stability score.',
+    lifecycleCurrent: 'Current',
+    lifecycleCandidate: 'Candidate',
+    lifecycleLongTerm: 'Long-term',
+    lifecycleEvents: 'Lifecycle events',
+    noLifecycle: 'No profile data yet. Send a message to extract facts automatically.',
+    stabilityScore: 'Stability',
+    source: 'Source',
+    status: 'Status',
     relationships: 'Relationships (persons + events)',
     seedDemoBtn: '✚ Seed demo data',
     refresh: '↻ Refresh',
@@ -609,6 +657,8 @@ function App() {
   const [boundaryInfo, setBoundaryInfo] = useState(null);
   const [adCheckPrice, setAdCheckPrice] = useState(null);
   const [adCheckResult, setAdCheckResult] = useState(null);
+  const [profileLifecycle, setProfileLifecycle] = useState(null);
+  const [driftControl, setDriftControl] = useState(null);
 
   const msgContainer = useRef(null);
   // Latest-state ref: imperative flows (runFullScript loop) read fresh state
@@ -924,6 +974,8 @@ function App() {
       setPrefs((p.preferences || []).slice().reverse());
       setSpecInfo(p.spec || null);
       setBoundaryInfo(p.boundary || null);
+      setProfileLifecycle(st.profile_lifecycle || null);
+      setDriftControl(st.drift_control || null);
     } catch { /* observation polling is best-effort */ }
   }
 
@@ -1333,6 +1385,55 @@ function App() {
                 </div>
               )}
 
+              {/* Long-task drift control / task health */}
+              <div className="sb-section">
+                <h3>{t.taskHealth}</h3>
+                <div style={dimSectionStyle}>{t.taskHealthDesc}</div>
+                {driftControl ? (
+                  <React.Fragment>
+                    <div style={{ marginBottom: '8px' }}>
+                      {driftControl.drifts_count > 0 ? (
+                        <span className="tag auth-denied">{t.taskDriftDetected} · {driftControl.drifts_count}</span>
+                      ) : (
+                        <span className="tag auth-confirmed">{t.taskHealthy}</span>
+                      )}
+                    </div>
+                    <div className="metrics-grid">
+                      <div className="metric-card"><div className="metric-val">{driftControl.events_count || 0}</div><div className="metric-label">{t.taskEvents}</div></div>
+                      <div className="metric-card"><div className="metric-val">{driftControl.snapshots_count || 0}</div><div className="metric-label">{t.taskSnapshots}</div></div>
+                      <div className="metric-card"><div className="metric-val">{driftControl.checkpoints_count || 0}</div><div className="metric-label">{t.taskCheckpoints}</div></div>
+                      <div className="metric-card"><div className="metric-val">{driftControl.drifts_count || 0}</div><div className="metric-label">{t.taskDrifts}</div></div>
+                    </div>
+                    {driftControl.last_checkpoint && (
+                      <div style={{ marginTop: '8px', fontSize: '11px' }}>
+                        <span style={{ color: 'var(--text-dim)' }}>{t.taskLatestCheckpoint}: </span>
+                        <span style={{ color: driftControl.last_checkpoint.passed ? 'var(--green)' : 'var(--red)' }}>
+                          {driftControl.last_checkpoint.passed ? t.taskHealthy : t.taskDriftDetected}
+                        </span>
+                      </div>
+                    )}
+                    {driftControl.last_drift_report && (
+                      <div style={{ marginTop: '4px', fontSize: '11px' }}>
+                        <span style={{ color: 'var(--text-dim)' }}>{t.taskLatestDrift}: </span>
+                        <span style={{ color: 'var(--red)' }}>{driftControl.last_drift_report.drift_type || ''}</span>
+                      </div>
+                    )}
+                    {driftControl.latest_snapshot_id && (
+                      <div style={{ marginTop: '4px', fontSize: '11px', color: 'var(--text-dim)' }}>
+                        {t.taskLatestSnapshot}: <span style={{ fontFamily: 'monospace' }}>{driftControl.latest_snapshot_id.slice(0, 8)}</span>
+                      </div>
+                    )}
+                    {driftControl.rebuilt_state && driftControl.rebuilt_state.goal && (
+                      <div style={{ marginTop: '4px', fontSize: '11px', color: 'var(--text-dim)' }}>
+                        {t.taskRebuiltState}: {truncate(driftControl.rebuilt_state.goal, 60)}
+                      </div>
+                    )}
+                  </React.Fragment>
+                ) : (
+                  <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>{t.taskNoDriftControl}</div>
+                )}
+              </div>
+
               {/* Layer architecture */}
               <div className="sb-section">
                 <h3>{t.layerArchitecture}</h3>
@@ -1621,6 +1722,60 @@ function App() {
                     ))}
                   </div>
                 ))}
+              </div>
+
+              {/* Profile lifecycle (current / candidate / long-term) */}
+              <div className="sb-section">
+                <h3>{t.lifecycle}</h3>
+                <div style={dimSectionStyle}>{t.lifecycleDesc}</div>
+                {!profileLifecycle || (
+                  profileLifecycle.current.length === 0 &&
+                  profileLifecycle.candidate.length === 0 &&
+                  profileLifecycle.long_term.length === 0
+                ) ? (
+                  <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>{t.noLifecycle}</div>
+                ) : (
+                  <React.Fragment>
+                    {[
+                      { key: 'current', label: t.lifecycleCurrent, color: 'var(--green)' },
+                      { key: 'candidate', label: t.lifecycleCandidate, color: 'var(--orange)' },
+                      { key: 'long_term', label: t.lifecycleLongTerm, color: 'var(--purple)' },
+                    ].map(group => (
+                      <div key={group.key} style={{ marginBottom: '10px' }}>
+                        <div style={{ fontSize: '11px', fontWeight: 600, color: group.color, marginBottom: '4px' }}>
+                          {group.label} ({(profileLifecycle[group.key] || []).length})
+                        </div>
+                        {(profileLifecycle[group.key] || []).length === 0 && (
+                          <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>-</div>
+                        )}
+                        {(profileLifecycle[group.key] || []).map(fact => (
+                          <div key={fact.id} className="fact-item">
+                            <div className="fact-row">
+                              <span className="fact-text">{fact.content}</span>
+                              {fact.is_dislike && <span className="badge-dislike">{t.dislike}</span>}
+                              {!fact.is_dislike && fact.is_hard_requirement && <span className="badge-hard">{t.hardReq}</span>}
+                            </div>
+                            <div style={{ fontSize: '10px', color: 'var(--text-dim)', marginTop: '2px', display: 'flex', gap: '8px' }}>
+                              <span>{t.source}: {fact.source}</span>
+                              <span>{t.status}: {fact.status}</span>
+                              <span>{t.stabilityScore}: {Math.round(fact.stability_score || 0)}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                    {profileLifecycle.events && profileLifecycle.events.length > 0 && (
+                      <div style={{ marginTop: '8px' }}>
+                        <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginBottom: '4px' }}>{t.lifecycleEvents}</div>
+                        {profileLifecycle.events.slice(0, 5).map(e => (
+                          <div key={e.event_id} style={{ fontSize: '10px', color: 'var(--text-dim)', marginBottom: '2px' }}>
+                            {e.action} · {e.reason}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </React.Fragment>
+                )}
               </div>
 
               {/* Relationship profile */}
