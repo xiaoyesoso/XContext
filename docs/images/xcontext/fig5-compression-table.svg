@@ -1,0 +1,147 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 790" width="1200" height="790" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, Helvetica, Arial, sans-serif">
+  <rect width="1200" height="790" fill="#FFFFFF"/>
+
+  <text x="60" y="62" font-size="40" font-weight="700" fill="#1F2328">压缩查表，不是拍脑袋</text>
+  <text x="60" y="98" font-size="18" fill="#6B7280">一条上下文该脱到几级水，由「重要性 × 预算档位」交叉决定</text>
+
+  <!-- [A] five levels -->
+  <g font-size="17" font-weight="700">
+    <rect x="60" y="150" width="56" height="36" rx="8" fill="#0D9488"/>
+    <text x="88" y="174" fill="#FFFFFF" text-anchor="middle">L4</text>
+    <text x="132" y="174" fill="#1F2328">原文</text>
+    <rect x="300" y="150" width="560" height="36" rx="8" fill="#D1FAE5"/>
+    <g stroke="#34D399" stroke-width="6" stroke-linecap="round">
+      <line x1="318" y1="162" x2="830" y2="162"/>
+      <line x1="318" y1="176" x2="790" y2="176"/>
+    </g>
+    <text x="1140" y="174" font-size="14" fill="#9CA3AF" font-weight="400" text-anchor="end">一个字不动</text>
+
+    <rect x="60" y="196" width="56" height="36" rx="8" fill="#3E63DD"/>
+    <text x="88" y="220" fill="#FFFFFF" text-anchor="middle">L3</text>
+    <text x="132" y="220" fill="#1F2328">结构化摘要</text>
+    <rect x="300" y="196" width="420" height="36" rx="8" fill="#DBEAFE"/>
+    <g stroke="#60A5FA" stroke-width="6" stroke-linecap="round">
+      <line x1="318" y1="208" x2="690" y2="208"/>
+      <line x1="318" y1="222" x2="600" y2="222"/>
+    </g>
+    <text x="1140" y="220" font-size="14" fill="#9CA3AF" font-weight="400" text-anchor="end">约 100 token</text>
+
+    <rect x="60" y="242" width="56" height="36" rx="8" fill="#F59E0B"/>
+    <text x="88" y="266" fill="#FFFFFF" text-anchor="middle">L2</text>
+    <text x="132" y="266" fill="#1F2328">一句话</text>
+    <rect x="300" y="242" width="280" height="36" rx="8" fill="#FEF3C7"/>
+    <line x1="318" y1="260" x2="550" y2="260" stroke="#FBBF24" stroke-width="6" stroke-linecap="round"/>
+    <text x="1140" y="266" font-size="14" fill="#9CA3AF" font-weight="400" text-anchor="end">约 30 token</text>
+
+    <rect x="60" y="288" width="56" height="36" rx="8" fill="#8B5CF6"/>
+    <text x="88" y="312" fill="#FFFFFF" text-anchor="middle">L1</text>
+    <text x="132" y="312" fill="#1F2328">关键词</text>
+    <rect x="300" y="288" width="150" height="36" rx="8" fill="#EDE9FE"/>
+    <g fill="#A78BFA">
+      <rect x="318" y="298" width="34" height="16" rx="8"/>
+      <rect x="360" y="298" width="46" height="16" rx="8"/>
+      <rect x="414" y="298" width="24" height="16" rx="8"/>
+    </g>
+    <text x="1140" y="312" font-size="14" fill="#9CA3AF" font-weight="400" text-anchor="end">约 10 token，像书的索引</text>
+
+    <rect x="60" y="334" width="56" height="36" rx="8" fill="#9CA3AF"/>
+    <text x="88" y="358" fill="#FFFFFF" text-anchor="middle">L0</text>
+    <text x="132" y="358" fill="#1F2328">丢弃</text>
+    <rect x="300" y="334" width="90" height="36" rx="8" fill="#F9FAFB" stroke="#D1D5DB" stroke-dasharray="5 4"/>
+    <text x="345" y="359" font-size="18" fill="#9CA3AF" text-anchor="middle" font-weight="400">×</text>
+    <text x="1140" y="358" font-size="14" fill="#9CA3AF" font-weight="400" text-anchor="end">整段丢掉</text>
+  </g>
+  <text x="920" y="250" font-size="17" fill="#6B7280">同一句话</text>
+  <text x="920" y="276" font-size="17" font-weight="600" fill="#1F2328">五种命运</text>
+
+  <!-- [B] decision table -->
+  <rect x="60" y="420" width="220" height="50" fill="#F7F8FA" stroke="#E5E7EB"/>
+  <text x="170" y="451" font-size="15" fill="#6B7280" text-anchor="middle">重要性 ＼ 预算档位</text>
+  <g font-size="16" font-weight="700" fill="#1F2328" text-anchor="middle">
+    <rect x="280" y="420" width="215" height="50" fill="#F7F8FA" stroke="#E5E7EB"/>
+    <text x="387" y="444">FULL</text>
+    <text x="387" y="462" font-size="12" font-weight="400" fill="#9CA3AF">&gt; 50%</text>
+    <rect x="495" y="420" width="215" height="50" fill="#F7F8FA" stroke="#E5E7EB"/>
+    <text x="602" y="444">BALANCED</text>
+    <text x="602" y="462" font-size="12" font-weight="400" fill="#9CA3AF">20 ~ 50%</text>
+    <rect x="710" y="420" width="215" height="50" fill="#F7F8FA" stroke="#E5E7EB"/>
+    <text x="817" y="444">COMPACT</text>
+    <text x="817" y="462" font-size="12" font-weight="400" fill="#9CA3AF">5 ~ 20%</text>
+    <rect x="925" y="420" width="215" height="50" fill="#F7F8FA" stroke="#E5E7EB"/>
+    <text x="1032" y="444">MINIMAL</text>
+    <text x="1032" y="462" font-size="12" font-weight="400" fill="#9CA3AF">&lt; 5%</text>
+  </g>
+
+  <g text-anchor="middle">
+    <!-- CRITICAL -->
+    <rect x="60" y="470" width="220" height="55" fill="#FEF2F2" stroke="#E5E7EB"/>
+    <text x="170" y="492" font-size="16" font-weight="700" fill="#B42318">CRITICAL</text>
+    <text x="170" y="513" font-size="12" fill="#B42318">硬规则、用户刚说的话</text>
+    <rect x="280" y="470" width="215" height="55" fill="#D1FAE5" stroke="#FFFFFF" stroke-width="2"/>
+    <text x="387" y="494" font-size="17" font-weight="700" fill="#065F46">L4</text>
+    <text x="387" y="513" font-size="12" fill="#065F46">原文</text>
+    <rect x="495" y="470" width="215" height="55" fill="#D1FAE5" stroke="#FFFFFF" stroke-width="2"/>
+    <text x="602" y="494" font-size="17" font-weight="700" fill="#065F46">L4</text>
+    <text x="602" y="513" font-size="12" fill="#065F46">原文</text>
+    <rect x="710" y="470" width="215" height="55" fill="#D1FAE5" stroke="#FFFFFF" stroke-width="2"/>
+    <text x="817" y="494" font-size="17" font-weight="700" fill="#065F46">L4</text>
+    <text x="817" y="513" font-size="12" fill="#065F46">原文</text>
+    <rect x="925" y="470" width="215" height="55" fill="#D1FAE5" stroke="#FFFFFF" stroke-width="2"/>
+    <text x="1032" y="494" font-size="17" font-weight="700" fill="#065F46">L4</text>
+    <text x="1032" y="513" font-size="12" fill="#065F46">原文</text>
+
+    <!-- HIGH -->
+    <rect x="60" y="525" width="220" height="55" fill="#FFF7ED" stroke="#E5E7EB"/>
+    <text x="170" y="547" font-size="16" font-weight="700" fill="#9A3412">HIGH</text>
+    <text x="170" y="568" font-size="12" fill="#9A3412">已确认的事实</text>
+    <rect x="280" y="525" width="215" height="55" fill="#D1FAE5" stroke="#FFFFFF" stroke-width="2"/>
+    <text x="387" y="549" font-size="17" font-weight="700" fill="#065F46">L4</text>
+    <text x="387" y="568" font-size="12" fill="#065F46">原文</text>
+    <rect x="495" y="525" width="215" height="55" fill="#D1FAE5" stroke="#FFFFFF" stroke-width="2"/>
+    <text x="602" y="549" font-size="17" font-weight="700" fill="#065F46">L4</text>
+    <text x="602" y="568" font-size="12" fill="#065F46">原文</text>
+    <rect x="710" y="525" width="215" height="55" fill="#DBEAFE" stroke="#FFFFFF" stroke-width="2"/>
+    <text x="817" y="549" font-size="17" font-weight="700" fill="#1E40AF">L3</text>
+    <text x="817" y="568" font-size="12" fill="#1E40AF">结构化摘要</text>
+    <rect x="925" y="525" width="215" height="55" fill="#FEF3C7" stroke="#FFFFFF" stroke-width="2"/>
+    <text x="1032" y="549" font-size="17" font-weight="700" fill="#92400E">L2</text>
+    <text x="1032" y="568" font-size="12" fill="#92400E">一句话</text>
+
+    <!-- MEDIUM -->
+    <rect x="60" y="580" width="220" height="55" fill="#EFF6FF" stroke="#E5E7EB"/>
+    <text x="170" y="602" font-size="16" font-weight="700" fill="#1E40AF">MEDIUM</text>
+    <text x="170" y="623" font-size="12" fill="#1E40AF">推断、画像、工具结果</text>
+    <rect x="280" y="580" width="215" height="55" fill="#D1FAE5" stroke="#FFFFFF" stroke-width="2"/>
+    <text x="387" y="604" font-size="17" font-weight="700" fill="#065F46">L4</text>
+    <text x="387" y="623" font-size="12" fill="#065F46">原文</text>
+    <rect x="495" y="580" width="215" height="55" fill="#DBEAFE" stroke="#FFFFFF" stroke-width="2"/>
+    <text x="602" y="604" font-size="17" font-weight="700" fill="#1E40AF">L3</text>
+    <text x="602" y="623" font-size="12" fill="#1E40AF">结构化摘要</text>
+    <rect x="710" y="580" width="215" height="55" fill="#FEF3C7" stroke="#FFFFFF" stroke-width="2"/>
+    <text x="817" y="604" font-size="17" font-weight="700" fill="#92400E">L2</text>
+    <text x="817" y="623" font-size="12" fill="#92400E">一句话</text>
+    <rect x="925" y="580" width="215" height="55" fill="#EDE9FE" stroke="#FFFFFF" stroke-width="2"/>
+    <text x="1032" y="604" font-size="17" font-weight="700" fill="#5B21B6">L1</text>
+    <text x="1032" y="623" font-size="12" fill="#5B21B6">关键词</text>
+
+    <!-- LOW -->
+    <rect x="60" y="635" width="220" height="55" fill="#F9FAFB" stroke="#E5E7EB"/>
+    <text x="170" y="657" font-size="16" font-weight="700" fill="#4B5563">LOW</text>
+    <text x="170" y="678" font-size="12" fill="#4B5563">闲聊、寒暄、边缘细节</text>
+    <rect x="280" y="635" width="215" height="55" fill="#DBEAFE" stroke="#FFFFFF" stroke-width="2"/>
+    <text x="387" y="659" font-size="17" font-weight="700" fill="#1E40AF">L3</text>
+    <text x="387" y="678" font-size="12" fill="#1E40AF">结构化摘要</text>
+    <rect x="495" y="635" width="215" height="55" fill="#FEF3C7" stroke="#FFFFFF" stroke-width="2"/>
+    <text x="602" y="659" font-size="17" font-weight="700" fill="#92400E">L2</text>
+    <text x="602" y="678" font-size="12" fill="#92400E">一句话</text>
+    <rect x="710" y="635" width="215" height="55" fill="#EDE9FE" stroke="#FFFFFF" stroke-width="2"/>
+    <text x="817" y="659" font-size="17" font-weight="700" fill="#5B21B6">L1</text>
+    <text x="817" y="678" font-size="12" fill="#5B21B6">关键词</text>
+    <rect x="925" y="635" width="215" height="55" fill="#F3F4F6" stroke="#FFFFFF" stroke-width="2"/>
+    <text x="1032" y="659" font-size="17" font-weight="700" fill="#6B7280">L0</text>
+    <text x="1032" y="678" font-size="12" fill="#6B7280">丢弃</text>
+  </g>
+
+  <text x="60" y="730" font-size="16" fill="#4B5563">第一行四格全是 L4，<tspan font-weight="700" fill="#1F2328">不管多紧张，关键的东西一个字都不许压</tspan>。最后一行 LOW，最宽裕也只给 L3</text>
+  <text x="60" y="760" font-size="15" fill="#9CA3AF">查表很简单，重要性「高」+ 预算「紧凑」，交叉那一格 L3，压成一百 token 的结构化摘要。想改策略，改这张表就行，不用翻代码</text>
+</svg>

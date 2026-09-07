@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 660" width="1200" height="660" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, Helvetica, Arial, sans-serif">
+  <rect width="1200" height="660" fill="#FFFFFF"/>
+
+  <text x="60" y="62" font-size="40" font-weight="700" fill="#1F2328">一条上下文的五张身份证</text>
+  <text x="60" y="98" font-size="18" fill="#6B7280">没有身份证的上下文，你没法决定谁该留谁该扔，只能按时间一刀切</text>
+
+  <rect x="60" y="140" width="1080" height="390" rx="20" fill="#F7F8FA" stroke="#E5E7EB" stroke-width="1.5"/>
+
+  <!-- [1] type -->
+  <text x="80" y="192" font-size="22" font-weight="700" fill="#3E63DD" font-family="Menlo, Consolas, monospace">type</text>
+  <text x="80" y="218" font-size="15" fill="#6B7280">这是什么</text>
+  <rect x="80" y="236" width="196" height="136" rx="12" fill="#FFFFFF" stroke="#DBEAFE" stroke-width="1.5"/>
+  <g font-size="14" text-anchor="middle">
+    <rect x="94" y="252" width="80" height="30" rx="8" fill="#FEE4E2" stroke="#E5484D"/>
+    <text x="134" y="273" fill="#B42318">约束</text>
+    <rect x="182" y="252" width="80" height="30" rx="8" fill="#FFFAEB" stroke="#F59E0B"/>
+    <text x="222" y="273" fill="#92400E">事实</text>
+    <rect x="94" y="292" width="80" height="30" rx="8" fill="#DBEAFE" stroke="#3E63DD"/>
+    <text x="134" y="313" fill="#1E40AF">画像</text>
+    <rect x="182" y="292" width="80" height="30" rx="8" fill="#CCFBF1" stroke="#0D9488"/>
+    <text x="222" y="313" fill="#065F46">对话</text>
+  </g>
+  <text x="94" y="356" font-size="14" fill="#9CA3AF">摘要 / 工具结果 …</text>
+  <text x="80" y="408" font-size="15" fill="#4B5563">不同类型，<tspan font-weight="600" fill="#1F2328">命运不一样</tspan></text>
+  <text x="80" y="434" font-size="15" fill="#4B5563">约束不能压，闲聊可以先扔</text>
+  <text x="80" y="460" font-size="15" fill="#4B5563">不该一视同仁</text>
+
+  <!-- [2] scope -->
+  <text x="291" y="192" font-size="22" font-weight="700" fill="#0D9488" font-family="Menlo, Consolas, monospace">scope</text>
+  <text x="291" y="218" font-size="15" fill="#6B7280">能管多远</text>
+  <rect x="291" y="236" width="196" height="136" rx="12" fill="#FFFFFF" stroke="#CCFBF1" stroke-width="1.5"/>
+  <g>
+    <rect x="303" y="254" width="50" height="18" rx="5" fill="#CCFBF1"/>
+    <text x="361" y="268" font-size="13" fill="#065F46">当前步</text>
+    <rect x="303" y="288" width="72" height="18" rx="5" fill="#99F6E4"/>
+    <text x="383" y="302" font-size="13" fill="#065F46">当前任务</text>
+    <rect x="303" y="322" width="94" height="18" rx="5" fill="#5EEAD4"/>
+    <text x="405" y="336" font-size="13" fill="#065F46">整个会话</text>
+  </g>
+  <text x="303" y="364" font-size="12" fill="#9CA3AF">再往上还有 用户 / 全局</text>
+  <text x="291" y="408" font-size="15" fill="#4B5563">你可以理解成<tspan font-weight="600" fill="#1F2328">保质期</tspan></text>
+  <text x="291" y="434" font-size="15" fill="#4B5563">临时信息和长期信息</text>
+  <text x="291" y="460" font-size="15" fill="#4B5563">不该占同一份空间</text>
+
+  <!-- [3] authority -->
+  <text x="502" y="192" font-size="22" font-weight="700" fill="#E5484D" font-family="Menlo, Consolas, monospace">authority</text>
+  <text x="502" y="218" font-size="15" fill="#6B7280">有多可信</text>
+  <rect x="502" y="236" width="196" height="136" rx="12" fill="#FFFFFF" stroke="#FEE4E2" stroke-width="1.5"/>
+  <text x="516" y="262" font-size="15" font-weight="600" fill="#1F2328">口供等级</text>
+  <g>
+    <rect x="516" y="296" width="26" height="40" rx="4" fill="#E5484D"/>
+    <rect x="550" y="304" width="26" height="32" rx="4" fill="#F76808"/>
+    <rect x="584" y="312" width="26" height="24" rx="4" fill="#F59E0B"/>
+    <rect x="618" y="320" width="26" height="16" rx="4" fill="#FCD34D"/>
+    <rect x="652" y="328" width="26" height="8" rx="4" fill="#D1D5DB"/>
+  </g>
+  <g font-size="12" fill="#6B7280" text-anchor="middle">
+    <text x="529" y="356">硬规则</text>
+    <text x="563" y="356">确认</text>
+    <text x="597" y="356">推断</text>
+    <text x="631" y="356">猜测</text>
+    <text x="665" y="356">已否定</text>
+  </g>
+  <text x="502" y="408" font-size="15" fill="#4B5563">用户亲口说的 vs 模型猜的</text>
+  <text x="502" y="434" font-size="15" fill="#4B5563"><tspan font-weight="600" fill="#1F2328">不能当同样份量看待</tspan></text>
+  <text x="502" y="460" font-size="15" fill="#4B5563">法庭上都不会这么干</text>
+
+  <!-- [4] priority -->
+  <text x="713" y="192" font-size="22" font-weight="700" fill="#F59E0B" font-family="Menlo, Consolas, monospace">priority</text>
+  <text x="713" y="218" font-size="15" fill="#6B7280">有多重要</text>
+  <rect x="713" y="236" width="196" height="136" rx="12" fill="#FFFFFF" stroke="#FEF3C7" stroke-width="1.5"/>
+  <rect x="727" y="262" width="168" height="22" rx="11" fill="#F3F4F6"/>
+  <rect x="727" y="262" width="118" height="22" rx="11" fill="#F59E0B"/>
+  <circle cx="845" cy="273" r="17" fill="#FFFFFF" stroke="#F59E0B" stroke-width="2.5"/>
+  <text x="845" y="279" font-size="15" font-weight="700" fill="#92400E" text-anchor="middle">7</text>
+  <text x="727" y="320" font-size="15" font-weight="600" fill="#1F2328">写死在 1 到 10</text>
+  <text x="727" y="346" font-size="13" fill="#9CA3AF" font-family="Menlo, Consolas, monospace">Field(ge=1, le=10)</text>
+  <text x="713" y="408" font-size="15" fill="#4B5563">数字越大越「命硬」</text>
+  <text x="713" y="434" font-size="15" fill="#4B5563">预算告急时<tspan font-weight="600" fill="#1F2328">它最后一个被牺牲</tspan></text>
+  <text x="713" y="460" font-size="15" fill="#4B5563">写死十档，逼你别无限加</text>
+
+  <!-- [5] confidence -->
+  <text x="924" y="192" font-size="22" font-weight="700" fill="#8B5CF6" font-family="Menlo, Consolas, monospace">confidence</text>
+  <text x="924" y="218" font-size="15" fill="#6B7280">有多大把握</text>
+  <rect x="924" y="236" width="196" height="136" rx="12" fill="#FFFFFF" stroke="#EDE9FE" stroke-width="1.5"/>
+  <rect x="938" y="262" width="168" height="20" rx="10" fill="#F3F4F6"/>
+  <rect x="938" y="262" width="143" height="20" rx="10" fill="#8B5CF6"/>
+  <text x="938" y="322" font-size="26" font-weight="700" fill="#5B21B6">0.85</text>
+  <text x="1010" y="322" font-size="14" fill="#9CA3AF">/ 1.0</text>
+  <text x="938" y="352" font-size="13" fill="#9CA3AF">0 = 纯猜，1 = 板上钉钉</text>
+  <text x="924" y="408" font-size="15" fill="#4B5563">优先级的补充</text>
+  <text x="924" y="434" font-size="15" fill="#4B5563">同样重要时，<tspan font-weight="600" fill="#1F2328">信把握大的</tspan></text>
+  <text x="924" y="460" font-size="15" fill="#4B5563">两票打架时的裁决依据</text>
+
+  <line x1="285" y1="170" x2="285" y2="505" stroke="#E5E7EB" stroke-width="1"/>
+  <line x1="496" y1="170" x2="496" y2="505" stroke="#E5E7EB" stroke-width="1"/>
+  <line x1="707" y1="170" x2="707" y2="505" stroke="#E5E7EB" stroke-width="1"/>
+  <line x1="918" y1="170" x2="918" y2="505" stroke="#E5E7EB" stroke-width="1"/>
+
+  <line x1="60" y1="572" x2="1140" y2="572" stroke="#E5E7EB" stroke-width="1.5"/>
+  <text x="60" y="608" font-size="17" fill="#4B5563">我们平时把这些信息拼成一个大字符串，指望模型自己分辨<tspan font-weight="700" fill="#E5484D">哪句是圣旨，哪句是猜测</tspan></text>
+  <text x="60" y="636" font-size="15" fill="#9CA3AF">这五个字段合在一起，才让「取舍」这件事有了依据</text>
+</svg>

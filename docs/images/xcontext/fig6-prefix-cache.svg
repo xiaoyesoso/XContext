@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" width="1200" height="700" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, Helvetica, Arial, sans-serif">
+  <rect width="1200" height="700" fill="#FFFFFF"/>
+
+  <text x="60" y="62" font-size="40" font-weight="700" fill="#1F2328">把稳定的钉在最前面，能省一半钱</text>
+  <text x="60" y="98" font-size="18" fill="#6B7280">Prompt Prefix Cache 要求前缀一字不差，顺序一换，缓存就废</text>
+
+  <!-- [1] wrong -->
+  <circle cx="76" cy="158" r="14" fill="#FEE4E2" stroke="#E5484D" stroke-width="2"/>
+  <line x1="70" y1="152" x2="82" y2="164" stroke="#E5484D" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="82" y1="152" x2="70" y2="164" stroke="#E5484D" stroke-width="2.5" stroke-linecap="round"/>
+  <text x="102" y="165" font-size="18" font-weight="600" fill="#B42318">错误做法，按时间排，每轮把最新一句插在最前面</text>
+
+  <text x="280" y="224" font-size="16" fill="#6B7280" text-anchor="end">第 N 轮</text>
+  <g font-size="14" text-anchor="middle">
+    <rect x="300" y="192" width="110" height="56" rx="8" fill="#FEE4E2" stroke="#E5484D"/>
+    <text x="355" y="226" fill="#B42318">约束</text>
+    <rect x="410" y="192" width="110" height="56" rx="8" fill="#DBEAFE" stroke="#3E63DD"/>
+    <text x="465" y="226" fill="#1E40AF">画像</text>
+    <rect x="520" y="192" width="90" height="56" rx="8" fill="#F3F4F6" stroke="#9CA3AF"/>
+    <text x="565" y="226" fill="#4B5563">对话A</text>
+    <rect x="610" y="192" width="90" height="56" rx="8" fill="#F3F4F6" stroke="#9CA3AF"/>
+    <text x="655" y="226" fill="#4B5563">对话B</text>
+  </g>
+
+  <text x="280" y="296" font-size="16" fill="#6B7280" text-anchor="end">第 N+1 轮</text>
+  <g font-size="14" text-anchor="middle">
+    <rect x="300" y="264" width="90" height="56" rx="8" fill="#FFFAEB" stroke="#F59E0B" stroke-width="2"/>
+    <text x="345" y="298" fill="#92400E">新对话C</text>
+    <rect x="390" y="264" width="110" height="56" rx="8" fill="#FEE4E2" stroke="#E5484D"/>
+    <text x="445" y="298" fill="#B42318">约束</text>
+    <rect x="500" y="264" width="110" height="56" rx="8" fill="#DBEAFE" stroke="#3E63DD"/>
+    <text x="555" y="298" fill="#1E40AF">画像</text>
+    <rect x="610" y="264" width="90" height="56" rx="8" fill="#F3F4F6" stroke="#9CA3AF"/>
+    <text x="655" y="298" fill="#4B5563">对话A</text>
+  </g>
+
+  <line x1="355" y1="254" x2="443" y2="272" stroke="#E5484D" stroke-width="2" stroke-dasharray="5 4"/>
+  <polygon points="450,274 436,268 440,260" fill="#E5484D"/>
+  <text x="880" y="240" font-size="15" fill="#B42318">所有东西整体右移一位，</text>
+  <text x="880" y="262" font-size="15" fill="#B42318">从第一个字起就不一样了</text>
+  <text x="300" y="352" font-size="16" font-weight="600" fill="#B42318">缓存全废，每一轮都全价重算，相当于每轮都从第一页重新读这本书</text>
+
+  <line x1="60" y1="382" x2="1140" y2="382" stroke="#E5E7EB" stroke-width="1.5"/>
+
+  <!-- [2] right -->
+  <circle cx="76" cy="424" r="14" fill="#D1FAE5" stroke="#059669" stroke-width="2"/>
+  <path d="M69 424 l5 5 l9 -10" stroke="#059669" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="102" y="431" font-size="18" font-weight="600" fill="#047857">正确做法，稳定的钉在最前，易变的放最后</text>
+
+  <rect x="294" y="452" width="418" height="140" rx="10" fill="#10B981" opacity="0.07"/>
+  <text x="280" y="486" font-size="16" fill="#6B7280" text-anchor="end">第 N 轮</text>
+  <g font-size="14" text-anchor="middle">
+    <rect x="300" y="456" width="110" height="56" rx="8" fill="#FEE4E2" stroke="#E5484D"/>
+    <text x="355" y="490" fill="#B42318">约束</text>
+    <rect x="410" y="456" width="110" height="56" rx="8" fill="#DBEAFE" stroke="#3E63DD"/>
+    <text x="465" y="490" fill="#1E40AF">画像</text>
+    <rect x="520" y="456" width="90" height="56" rx="8" fill="#F3F4F6" stroke="#9CA3AF"/>
+    <text x="565" y="490" fill="#4B5563">对话A</text>
+    <rect x="610" y="456" width="90" height="56" rx="8" fill="#F3F4F6" stroke="#9CA3AF"/>
+    <text x="655" y="490" fill="#4B5563">对话B</text>
+  </g>
+
+  <text x="280" y="558" font-size="16" fill="#6B7280" text-anchor="end">第 N+1 轮</text>
+  <g font-size="14" text-anchor="middle">
+    <rect x="300" y="528" width="110" height="56" rx="8" fill="#FEE4E2" stroke="#E5484D"/>
+    <text x="355" y="562" fill="#B42318">约束</text>
+    <rect x="410" y="528" width="110" height="56" rx="8" fill="#DBEAFE" stroke="#3E63DD"/>
+    <text x="465" y="562" fill="#1E40AF">画像</text>
+    <rect x="520" y="528" width="90" height="56" rx="8" fill="#F3F4F6" stroke="#9CA3AF"/>
+    <text x="565" y="562" fill="#4B5563">对话A</text>
+    <rect x="610" y="528" width="90" height="56" rx="8" fill="#F3F4F6" stroke="#9CA3AF"/>
+    <text x="655" y="562" fill="#4B5563">对话B</text>
+    <rect x="700" y="528" width="90" height="56" rx="8" fill="#FFFAEB" stroke="#F59E0B" stroke-width="2"/>
+    <text x="745" y="562" fill="#92400E">新对话C</text>
+  </g>
+  <rect x="294" y="452" width="418" height="140" rx="10" fill="none" stroke="#10B981" stroke-width="2" stroke-dasharray="7 5"/>
+  <text x="880" y="500" font-size="15" fill="#047857">前缀一字不差，</text>
+  <text x="880" y="522" font-size="15" fill="#047857">只有尾巴那一小截重新算</text>
+
+  <!-- stat box -->
+  <rect x="860" y="600" width="280" height="72" rx="12" fill="#ECFDF5" stroke="#10B981" stroke-width="1.5"/>
+  <text x="1000" y="632" font-size="24" font-weight="700" fill="#047857" text-anchor="middle">30% → 90%</text>
+  <text x="1000" y="658" font-size="14" fill="#047857" text-anchor="middle">前缀缓存命中率，账单差一个数量级</text>
+
+  <text x="60" y="640" font-size="16" fill="#4B5563">排序的规则不看时间，<tspan font-weight="700" fill="#1F2328">看稳定性</tspan>。约束、画像、事实是稳定的，</text>
+  <text x="60" y="666" font-size="16" fill="#4B5563">用户刚说的话、工具结果是易变的。就这一条排序规则，直接就是钱</text>
+</svg>

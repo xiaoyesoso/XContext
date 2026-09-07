@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 620" width="1200" height="620" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, Helvetica, Arial, sans-serif">
+  <rect width="1200" height="620" fill="#FFFFFF"/>
+
+  <text x="60" y="62" font-size="40" font-weight="700" fill="#1F2328">油箱还剩多少，决定开多猛</text>
+  <text x="60" y="98" font-size="18" fill="#6B7280">ratio = remaining / total，把「要不要压缩」从一个开关，变成一个连续的状态机</text>
+
+  <!-- gauge bar -->
+  <rect x="60" y="150" width="540" height="60" fill="#0D9488"/>
+  <rect x="600" y="150" width="324" height="60" fill="#3E63DD"/>
+  <rect x="924" y="150" width="162" height="60" fill="#F59E0B"/>
+  <rect x="1086" y="150" width="54" height="60" fill="#E5484D"/>
+  <g font-size="17" font-weight="700" fill="#FFFFFF" text-anchor="middle">
+    <text x="330" y="186">FULL</text>
+    <text x="762" y="186">BALANCED</text>
+    <text x="1005" y="186">COMPACT</text>
+  </g>
+
+  <!-- ticks -->
+  <g stroke="#9CA3AF" stroke-width="2">
+    <line x1="60" y1="210" x2="60" y2="222"/>
+    <line x1="600" y1="210" x2="600" y2="222"/>
+    <line x1="924" y1="210" x2="924" y2="222"/>
+    <line x1="1086" y1="210" x2="1086" y2="222"/>
+    <line x1="1140" y1="210" x2="1140" y2="222"/>
+  </g>
+  <g font-size="14" fill="#6B7280">
+    <text x="60" y="244">100%</text>
+    <text x="600" y="244" text-anchor="middle">50%</text>
+    <text x="924" y="244" text-anchor="middle">20%</text>
+    <text x="1086" y="244" text-anchor="middle">5%</text>
+    <text x="1140" y="244" text-anchor="end">0%</text>
+  </g>
+
+  <!-- legend -->
+  <g>
+    <rect x="66" y="278" width="258" height="112" rx="14" fill="#F7F8FA" stroke="#E5E7EB" stroke-width="1.5"/>
+    <rect x="86" y="298" width="16" height="16" rx="4" fill="#0D9488"/>
+    <text x="112" y="312" font-size="18" font-weight="700" fill="#0D9488">FULL</text>
+    <text x="86" y="344" font-size="15" fill="#6B7280" font-family="Menlo, Consolas, monospace">ratio &gt; 0.50</text>
+    <text x="86" y="372" font-size="16" fill="#1F2328">想塞什么塞什么</text>
+
+    <rect x="336" y="278" width="258" height="112" rx="14" fill="#F7F8FA" stroke="#E5E7EB" stroke-width="1.5"/>
+    <rect x="356" y="298" width="16" height="16" rx="4" fill="#3E63DD"/>
+    <text x="382" y="312" font-size="18" font-weight="700" fill="#3E63DD">BALANCED</text>
+    <text x="356" y="344" font-size="15" fill="#6B7280" font-family="Menlo, Consolas, monospace">0.20 ~ 0.50</text>
+    <text x="356" y="372" font-size="16" fill="#1F2328">开始有取舍</text>
+
+    <rect x="606" y="278" width="258" height="112" rx="14" fill="#F7F8FA" stroke="#E5E7EB" stroke-width="1.5"/>
+    <rect x="626" y="298" width="16" height="16" rx="4" fill="#F59E0B"/>
+    <text x="652" y="312" font-size="18" font-weight="700" fill="#B45309">COMPACT</text>
+    <text x="626" y="344" font-size="15" fill="#6B7280" font-family="Menlo, Consolas, monospace">0.05 ~ 0.20</text>
+    <text x="626" y="372" font-size="16" fill="#1F2328">大面积压缩</text>
+
+    <rect x="876" y="278" width="258" height="112" rx="14" fill="#F7F8FA" stroke="#E5E7EB" stroke-width="1.5"/>
+    <rect x="896" y="298" width="16" height="16" rx="4" fill="#E5484D"/>
+    <text x="922" y="312" font-size="18" font-weight="700" fill="#B42318">MINIMAL</text>
+    <text x="896" y="344" font-size="15" fill="#6B7280" font-family="Menlo, Consolas, monospace">ratio &lt; 0.05</text>
+    <text x="896" y="372" font-size="16" fill="#1F2328">只保命，能省则省</text>
+  </g>
+
+  <!-- formulas -->
+  <rect x="60" y="428" width="1080" height="120" rx="14" fill="#F7F8FA" stroke="#E5E7EB" stroke-width="1.5"/>
+  <text x="100" y="478" font-size="20" font-weight="600" fill="#1F2328" font-family="Menlo, Consolas, monospace">budget = total - reserved</text>
+  <text x="100" y="516" font-size="15" fill="#6B7280">4096 - 1024 = 3072，给模型回答留出位置</text>
+  <line x1="600" y1="448" x2="600" y2="528" stroke="#E5E7EB" stroke-width="1.5"/>
+  <text x="640" y="478" font-size="20" font-weight="600" fill="#1F2328" font-family="Menlo, Consolas, monospace">ratio = remaining / total</text>
+  <text x="640" y="516" font-size="15" fill="#6B7280">3072 / 4096 = 0.75，落在 FULL 档</text>
+
+  <text x="60" y="590" font-size="15" fill="#9CA3AF">很多 Agent 前二十轮好好的，第二十一轮突然胡说八道，就是因为没有中间状态，只有「装得下」和「装不下」</text>
+</svg>

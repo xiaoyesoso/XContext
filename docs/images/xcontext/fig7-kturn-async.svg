@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" width="1200" height="700" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, Helvetica, Arial, sans-serif">
+  <rect width="1200" height="700" fill="#FFFFFF"/>
+
+  <text x="60" y="62" font-size="40" font-weight="700" fill="#1F2328">最近 K 轮留原文，更远的交给摘要</text>
+  <text x="60" y="98" font-size="18" fill="#6B7280">异步一定有延迟。与其想尽办法消除延迟，不如给延迟留一个缓冲区</text>
+
+  <!-- [A] K-turn window -->
+  <text x="60" y="156" font-size="20" font-weight="700" fill="#1F2328">K-turn 原始窗口</text>
+  <text x="60" y="176" font-size="13" fill="#9CA3AF">满了就从头上扔一个（pop(0)）</text>
+
+  <g>
+    <rect x="60" y="192" width="80" height="80" rx="10" fill="#F9FAFB" stroke="#D1D5DB" stroke-dasharray="5 4"/>
+    <text x="100" y="226" font-size="14" fill="#9CA3AF" text-anchor="middle">T1</text>
+    <text x="100" y="250" font-size="13" fill="#9CA3AF" text-anchor="middle">摘要</text>
+    <rect x="148" y="192" width="80" height="80" rx="10" fill="#F9FAFB" stroke="#D1D5DB" stroke-dasharray="5 4"/>
+    <text x="188" y="226" font-size="14" fill="#9CA3AF" text-anchor="middle">T2</text>
+    <text x="188" y="250" font-size="13" fill="#9CA3AF" text-anchor="middle">摘要</text>
+    <rect x="236" y="192" width="80" height="80" rx="10" fill="#F9FAFB" stroke="#D1D5DB" stroke-dasharray="5 4"/>
+    <text x="276" y="226" font-size="14" fill="#9CA3AF" text-anchor="middle">T3</text>
+    <text x="276" y="250" font-size="13" fill="#9CA3AF" text-anchor="middle">摘要</text>
+    <rect x="324" y="192" width="80" height="80" rx="10" fill="#F9FAFB" stroke="#D1D5DB" stroke-dasharray="5 4"/>
+    <text x="364" y="226" font-size="14" fill="#9CA3AF" text-anchor="middle">T4</text>
+    <text x="364" y="250" font-size="13" fill="#9CA3AF" text-anchor="middle">摘要</text>
+    <rect x="412" y="192" width="80" height="80" rx="10" fill="#F9FAFB" stroke="#D1D5DB" stroke-dasharray="5 4"/>
+    <text x="452" y="226" font-size="14" fill="#9CA3AF" text-anchor="middle">T5</text>
+    <text x="452" y="250" font-size="13" fill="#9CA3AF" text-anchor="middle">摘要</text>
+    <rect x="500" y="192" width="80" height="80" rx="10" fill="#F9FAFB" stroke="#D1D5DB" stroke-dasharray="5 4"/>
+    <text x="540" y="226" font-size="14" fill="#9CA3AF" text-anchor="middle">T6</text>
+    <text x="540" y="250" font-size="13" fill="#9CA3AF" text-anchor="middle">摘要</text>
+    <rect x="588" y="192" width="80" height="80" rx="10" fill="#F9FAFB" stroke="#D1D5DB" stroke-dasharray="5 4"/>
+    <text x="628" y="226" font-size="14" fill="#9CA3AF" text-anchor="middle">T7</text>
+    <text x="628" y="250" font-size="13" fill="#9CA3AF" text-anchor="middle">摘要</text>
+    <rect x="676" y="192" width="80" height="80" rx="10" fill="#F9FAFB" stroke="#D1D5DB" stroke-dasharray="5 4"/>
+    <text x="716" y="226" font-size="14" fill="#9CA3AF" text-anchor="middle">T8</text>
+    <text x="716" y="250" font-size="13" fill="#9CA3AF" text-anchor="middle">摘要</text>
+    <rect x="764" y="192" width="80" height="80" rx="10" fill="#CCFBF1" stroke="#0D9488" stroke-width="1.5"/>
+    <text x="804" y="226" font-size="15" font-weight="700" fill="#065F46" text-anchor="middle">T9</text>
+    <text x="804" y="250" font-size="14" fill="#065F46" text-anchor="middle">原文</text>
+    <rect x="852" y="192" width="80" height="80" rx="10" fill="#CCFBF1" stroke="#0D9488" stroke-width="1.5"/>
+    <text x="892" y="226" font-size="15" font-weight="700" fill="#065F46" text-anchor="middle">T10</text>
+    <text x="892" y="250" font-size="14" fill="#065F46" text-anchor="middle">原文</text>
+    <rect x="940" y="192" width="80" height="80" rx="10" fill="#CCFBF1" stroke="#0D9488" stroke-width="1.5"/>
+    <text x="980" y="226" font-size="15" font-weight="700" fill="#065F46" text-anchor="middle">T11</text>
+    <text x="980" y="250" font-size="14" fill="#065F46" text-anchor="middle">原文</text>
+    <rect x="1028" y="192" width="80" height="80" rx="10" fill="#CCFBF1" stroke="#0D9488" stroke-width="1.5"/>
+    <text x="1068" y="226" font-size="15" font-weight="700" fill="#065F46" text-anchor="middle">T12</text>
+    <text x="1068" y="250" font-size="14" fill="#065F46" text-anchor="middle">原文</text>
+  </g>
+
+  <g stroke="#9CA3AF" stroke-width="1.5" fill="none">
+    <path d="M60 286 v10 h696 v-10"/>
+  </g>
+  <text x="408" y="316" font-size="15" fill="#6B7280" text-anchor="middle">压成摘要，提起关键词再召回</text>
+  <g stroke="#0D9488" stroke-width="2" fill="none">
+    <path d="M764 286 v10 h344 v-10"/>
+  </g>
+  <text x="936" y="316" font-size="15" font-weight="600" fill="#065F46" text-anchor="middle">K = 4，原文一定在窗口里</text>
+
+  <line x1="60" y1="348" x2="1140" y2="348" stroke="#E5E7EB" stroke-width="1.5"/>
+
+  <!-- [B] async -->
+  <text x="60" y="392" font-size="20" font-weight="700" fill="#1F2328">end_of_turn 异步构造</text>
+  <text x="60" y="412" font-size="13" fill="#9CA3AF">后台跑什么用户无感，但用户下次开口时，Agent 已经想好了</text>
+
+  <text x="60" y="458" font-size="15" fill="#9CA3AF">前台</text>
+  <g font-size="15" text-anchor="middle">
+    <rect x="110" y="436" width="190" height="60" rx="10" fill="#F3F4F6" stroke="#9CA3AF"/>
+    <text x="205" y="472" fill="#1F2328">用户发消息</text>
+    <rect x="350" y="436" width="190" height="60" rx="10" fill="#FFFFFF" stroke="#1F2328" stroke-width="2"/>
+    <text x="445" y="472" fill="#1F2328" font-weight="600">Agent 回复</text>
+    <rect x="590" y="436" width="190" height="60" rx="10" fill="#F3F4F6" stroke="#9CA3AF"/>
+    <text x="685" y="472" fill="#1F2328">用户发消息</text>
+    <rect x="830" y="436" width="190" height="60" rx="10" fill="#FFFFFF" stroke="#1F2328" stroke-width="2"/>
+    <text x="925" y="472" fill="#1F2328" font-weight="600">Agent 回复</text>
+  </g>
+  <g stroke="#9CA3AF" stroke-width="2" fill="#9CA3AF">
+    <line x1="302" y1="466" x2="340" y2="466"/>
+    <polygon points="348,466 336,460 336,472"/>
+    <line x1="542" y1="466" x2="580" y2="466"/>
+    <polygon points="588,466 576,460 576,472"/>
+    <line x1="782" y1="466" x2="820" y2="466"/>
+    <polygon points="828,466 816,460 816,472"/>
+  </g>
+
+  <line x1="590" y1="506" x2="1020" y2="506" stroke="#E5484D" stroke-width="2" stroke-dasharray="6 5"/>
+  <text x="805" y="532" font-size="15" font-weight="600" fill="#B42318" text-anchor="middle">同步算的代价，用户在这里干等</text>
+
+  <text x="60" y="578" font-size="15" fill="#8B5CF6">后台</text>
+  <g font-size="14" text-anchor="middle">
+    <rect x="350" y="556" width="190" height="64" rx="10" fill="#EDE9FE" stroke="#8B5CF6" stroke-width="1.5"/>
+    <text x="445" y="582" fill="#5B21B6">摘要提取</text>
+    <text x="445" y="604" fill="#5B21B6">画像更新</text>
+    <rect x="830" y="556" width="190" height="64" rx="10" fill="#EDE9FE" stroke="#8B5CF6" stroke-width="1.5"/>
+    <text x="925" y="582" fill="#5B21B6">摘要提取</text>
+    <text x="925" y="604" fill="#5B21B6">画像更新</text>
+  </g>
+  <g stroke="#8B5CF6" stroke-width="2" fill="#8B5CF6" stroke-dasharray="6 4">
+    <line x1="445" y1="498" x2="445" y2="548"/>
+    <line x1="925" y1="498" x2="925" y2="548"/>
+  </g>
+  <polygon points="445,554 439,544 451,544" fill="#8B5CF6"/>
+  <polygon points="925,554 919,544 931,544" fill="#8B5CF6"/>
+  <text x="437" y="528" font-size="13" fill="#8B5CF6" text-anchor="end">回复一结束就触发</text>
+  <line x1="542" y1="588" x2="586" y2="490" stroke="#8B5CF6" stroke-width="2" stroke-dasharray="6 4"/>
+  <polygon points="590,482 578,486 586,496" fill="#8B5CF6"/>
+  <text x="560" y="566" font-size="13" fill="#8B5CF6">下一轮直接注入</text>
+
+  <line x1="60" y1="648" x2="1140" y2="648" stroke="#E5E7EB" stroke-width="1.5"/>
+  <text x="60" y="682" font-size="16" fill="#4B5563">这个思路能用在很多地方。它是在承认一件事，<tspan font-weight="700" fill="#1F2328">异步系统一定有延迟，不如给延迟留个缓冲区</tspan></text>
+</svg>

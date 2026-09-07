@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, Helvetica, Arial, sans-serif">
+  <rect width="1200" height="800" fill="#FFFFFF"/>
+
+  <text x="60" y="62" font-size="40" font-weight="700" fill="#1F2328">优先级不是谁更重要，是谁先挑</text>
+  <text x="60" y="98" font-size="18" fill="#6B7280">预算告急的时候，从下往上开始被牺牲。先挑的人永远有肉吃</text>
+  <text x="60" y="128" font-size="15" fill="#B45309">默认策略占了 10 到 4 七个档，3、2、1 留空，是给未来新角色插队用的</text>
+
+  <!-- p10 -->
+  <text x="280" y="170" font-size="18" font-weight="700" fill="#1F2328" text-anchor="end">约束</text>
+  <text x="280" y="188" font-size="12" fill="#9CA3AF" text-anchor="end" font-family="Menlo, Consolas, monospace">constraint</text>
+  <rect x="300" y="150" width="620" height="46" rx="9" fill="#FEE4E2" stroke="#E5484D" stroke-width="1.5"/>
+  <circle cx="326" cy="173" r="16" fill="#FFFFFF" stroke="#E5484D" stroke-width="2.5"/>
+  <text x="326" y="179" font-size="15" font-weight="700" fill="#B42318" text-anchor="middle">10</text>
+  <text x="354" y="179" font-size="15" font-weight="600" fill="#B42318">「不要小米」，用户亲口说的底线</text>
+  <text x="990" y="169" font-size="15" fill="#6B7280">动谁都不能动它</text>
+  <text x="990" y="188" font-size="13" fill="#9CA3AF">锁死，不压缩</text>
+
+  <!-- p9 -->
+  <text x="280" y="224" font-size="18" font-weight="700" fill="#1F2328" text-anchor="end">关键事实</text>
+  <text x="280" y="242" font-size="12" fill="#9CA3AF" text-anchor="end" font-family="Menlo, Consolas, monospace">key_facts</text>
+  <rect x="300" y="204" width="558" height="46" rx="9" fill="#FFFAEB" stroke="#F59E0B" stroke-width="1.5"/>
+  <circle cx="326" cy="227" r="16" fill="#FFFFFF" stroke="#F59E0B" stroke-width="2.5"/>
+  <text x="326" y="233" font-size="15" font-weight="700" fill="#92400E" text-anchor="middle">9</text>
+  <text x="354" y="233" font-size="15" font-weight="600" fill="#92400E">已确认的，预算 3000、要开发票</text>
+  <text x="990" y="223" font-size="15" fill="#6B7280">丢了就答错</text>
+  <text x="990" y="242" font-size="13" fill="#9CA3AF">尽量不压</text>
+
+  <!-- p8 -->
+  <text x="280" y="278" font-size="18" font-weight="700" fill="#1F2328" text-anchor="end">用户画像</text>
+  <text x="280" y="296" font-size="12" fill="#9CA3AF" text-anchor="end" font-family="Menlo, Consolas, monospace">user_profile</text>
+  <rect x="300" y="258" width="496" height="46" rx="9" fill="#DBEAFE" stroke="#3E63DD" stroke-width="1.5"/>
+  <circle cx="326" cy="281" r="16" fill="#FFFFFF" stroke="#3E63DD" stroke-width="2.5"/>
+  <text x="326" y="287" font-size="15" font-weight="700" fill="#1E40AF" text-anchor="middle">8</text>
+  <text x="354" y="287" font-size="15" font-weight="600" fill="#1E40AF">安卓偏好、价格敏感</text>
+  <text x="990" y="277" font-size="15" fill="#6B7280">按场景加载</text>
+  <text x="990" y="296" font-size="13" fill="#9CA3AF">推荐场景才捞</text>
+
+  <!-- p7 -->
+  <text x="280" y="332" font-size="18" font-weight="700" fill="#1F2328" text-anchor="end">对话历史</text>
+  <text x="280" y="350" font-size="12" fill="#9CA3AF" text-anchor="end" font-family="Menlo, Consolas, monospace">dialogue_history</text>
+  <rect x="300" y="312" width="434" height="46" rx="9" fill="#CCFBF1" stroke="#0D9488" stroke-width="1.5"/>
+  <circle cx="326" cy="335" r="16" fill="#FFFFFF" stroke="#0D9488" stroke-width="2.5"/>
+  <text x="326" y="341" font-size="15" font-weight="700" fill="#065F46" text-anchor="middle">7</text>
+  <text x="354" y="341" font-size="15" font-weight="600" fill="#065F46">最近 6 轮原话</text>
+  <text x="990" y="331" font-size="15" fill="#6B7280">只留最近几轮</text>
+  <text x="990" y="350" font-size="13" fill="#9CA3AF">可压成摘要</text>
+
+  <!-- p6 -->
+  <text x="280" y="386" font-size="18" font-weight="700" fill="#1F2328" text-anchor="end">任务状态</text>
+  <text x="280" y="404" font-size="12" fill="#9CA3AF" text-anchor="end" font-family="Menlo, Consolas, monospace">task_state</text>
+  <rect x="300" y="366" width="372" height="46" rx="9" fill="#E0F2FE" stroke="#0284C7" stroke-width="1.5"/>
+  <circle cx="326" cy="389" r="16" fill="#FFFFFF" stroke="#0284C7" stroke-width="2.5"/>
+  <text x="326" y="395" font-size="15" font-weight="700" fill="#075985" text-anchor="middle">6</text>
+  <text x="354" y="395" font-size="15" font-weight="600" fill="#075985">当前目标 · 走到哪一步了</text>
+  <text x="990" y="385" font-size="15" fill="#6B7280">比摘要更贴当下</text>
+  <text x="990" y="404" font-size="13" fill="#9CA3AF">目标 / 步骤 / 还缺什么</text>
+
+  <!-- p5 -->
+  <text x="280" y="440" font-size="18" font-weight="700" fill="#6B7280" text-anchor="end">摘要</text>
+  <text x="280" y="458" font-size="12" fill="#9CA3AF" text-anchor="end" font-family="Menlo, Consolas, monospace">summary</text>
+  <rect x="300" y="420" width="310" height="46" rx="9" fill="#EDE9FE" stroke="#8B5CF6" stroke-width="1.5"/>
+  <circle cx="326" cy="443" r="16" fill="#FFFFFF" stroke="#8B5CF6" stroke-width="2.5"/>
+  <text x="326" y="449" font-size="15" font-weight="700" fill="#5B21B6" text-anchor="middle">5</text>
+  <text x="354" y="449" font-size="15" font-weight="600" fill="#5B21B6">更早对话的一句话版本</text>
+  <text x="990" y="439" font-size="15" fill="#6B7280">压多狠都行</text>
+  <text x="990" y="458" font-size="13" fill="#9CA3AF">丢了也不致命</text>
+
+  <!-- 预算告急线 -->
+  <line x1="60" y1="486" x2="1140" y2="486" stroke="#E5484D" stroke-width="2.5" stroke-dasharray="9 6"/>
+  <rect x="60" y="472" width="224" height="28" rx="8" fill="#FEE4E2"/>
+  <text x="172" y="492" font-size="14" font-weight="600" fill="#B42318" text-anchor="middle">预算告急线</text>
+  <text x="700" y="492" font-size="14" fill="#B42318">线以下的，先被压缩，再被整段丢掉</text>
+
+  <!-- p4 -->
+  <text x="280" y="514" font-size="18" font-weight="700" fill="#6B7280" text-anchor="end">召回细节</text>
+  <text x="280" y="532" font-size="12" fill="#9CA3AF" text-anchor="end" font-family="Menlo, Consolas, monospace">detail_recall</text>
+  <rect x="300" y="494" width="248" height="46" rx="9" fill="#F3F4F6" stroke="#9CA3AF" stroke-width="1.5"/>
+  <circle cx="326" cy="517" r="16" fill="#FFFFFF" stroke="#9CA3AF" stroke-width="2.5"/>
+  <text x="326" y="523" font-size="15" font-weight="700" fill="#4B5563" text-anchor="middle">4</text>
+  <text x="354" y="523" font-size="15" font-weight="600" fill="#4B5563">关键词捞回的老细节</text>
+  <text x="990" y="513" font-size="15" fill="#6B7280">第一个被扔</text>
+  <text x="990" y="532" font-size="13" fill="#9CA3AF">空间不够先砍它</text>
+
+  <!-- p3 empty -->
+  <rect x="300" y="548" width="186" height="46" rx="9" fill="#FAFAFA" stroke="#D1D5DB" stroke-width="1.5" stroke-dasharray="6 5"/>
+  <text x="393" y="577" font-size="14" fill="#9CA3AF" text-anchor="middle">3 号位 · 空着</text>
+
+  <!-- p2 empty -->
+  <rect x="300" y="602" width="124" height="46" rx="9" fill="#FAFAFA" stroke="#D1D5DB" stroke-width="1.5" stroke-dasharray="6 5"/>
+  <text x="362" y="631" font-size="14" fill="#9CA3AF" text-anchor="middle">2 · 空位</text>
+
+  <!-- p1 empty -->
+  <rect x="300" y="656" width="90" height="46" rx="9" fill="#FAFAFA" stroke="#D1D5DB" stroke-width="1.5" stroke-dasharray="6 5"/>
+  <text x="345" y="685" font-size="13" fill="#9CA3AF" text-anchor="middle">1 · 空</text>
+  <text x="990" y="640" font-size="13" fill="#9CA3AF">再往下的空位同理，</text>
+  <text x="990" y="659" font-size="13" fill="#9CA3AF">都是留给以后的新角色</text>
+
+  <line x1="60" y1="730" x2="1140" y2="730" stroke="#E5E7EB" stroke-width="1.5"/>
+  <text x="60" y="764" font-size="15" fill="#9CA3AF">想加新角色，挑一个空档位插进去就行。这也是把优先级写死在 1 到 10 的另一个好处，扩展有预留，不用重排</text>
+</svg>

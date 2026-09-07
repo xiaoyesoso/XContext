@@ -6,6 +6,8 @@
 
 XContext 是一个 Python 后端服务，为 LLM Agent 系统提供统一的上下文管理抽象。它将记忆管理、用户画像、对话历史、工具结果、任务状态等异构上下文统一为标准模型，并通过可配置的管道动态编排上下文窗口。
 
+> 深度解读文章：[Agent上下文管理｜我把记忆系统做成了可配置策略](./docs/xcontext_article.md)
+
 ## 核心理念
 
 ```
@@ -19,7 +21,11 @@ Window_t = Inject(
            )
 ```
 
+![Context Window = f(Context)：窗口是全部上下文经函数筛选后的结果](docs/images/xcontext/fig1-context-function.png)
+
 服务将上下文窗口的构建分解为五个阶段：**Retrieve → Select → Compress → Order → Inject**，并引入 **Context Compiler** 概念——窗口不仅取决于全部上下文，还取决于当前任务状态（`TaskState_t`）和 Token 预算（`TokenBudget_t`）。
+
+![系统全景：同步管道与后台异步任务协同构建每一轮窗口](docs/images/xcontext/fig0-overview.png)
 
 ## 功能特性
 
@@ -38,10 +44,17 @@ Window_t = Inject(
 - **五级压缩（L0–L4）**：L0 丢弃 → L1 关键词 → L2 一句话 → L3 结构化摘要 → L4 原始保留，按重要性×预算模式查表决策
 - **场景化压缩变体**：同一内容可预生成不同场景的压缩版本，运行时按场景选择
 - **级联规则**：同一关联组的互补项保持同一压缩级别；重叠项可丢弃冗余
+- **角色化策略编排**：约束、关键事实、用户画像、对话历史、任务状态、摘要、细节召回七个上下文角色各按优先级（10–4）竞争窗口空间，预算告急时低优先级角色先被压缩、裁剪乃至整段丢弃
 - **缓存感知排序**：稳定内容（约束、硬规则、已确认事实）前置构建 Prompt Prefix Cache 友好前缀，易变内容（用户输入、工具结果）后置
 - **负向上下文**：用户拒绝的内容（`authority=denied`）转换为一句话"勿重复"提醒，防止 Agent 回退到已否定方案
 - **失败历史反馈**：记录因缺失上下文导致的任务失败，后续同类任务自动提升相关上下文类型的优先级和最低压缩级别
 - **多模式选择器**：规则选择器（默认）、关键词检索选择器、LLM 模型选择器（默认关闭）
+
+![优先级阶梯：七个角色按 10 到 4 排序，预算告急时自下而上牺牲](docs/images/xcontext/fig3-priority-ladder.png)
+
+![预算油表：剩余比例分四档，驱动后续所有压缩决策](docs/images/xcontext/fig4-budget-gauge.png)
+
+![缓存感知排序：稳定内容前置命中 Prompt Prefix Cache，显著降低推理成本](docs/images/xcontext/fig6-prefix-cache.png)
 
 ### 摘要与细节召回
 
@@ -52,6 +65,8 @@ Window_t = Inject(
 - **混合检索召回**：基于关键词 + 向量的混合检索 + 重排序，从 ES / 向量库召回被压缩掉的细节
 - **冲突裁决**：区分"强化"（互补，保留全部）与"冲突"（矛盾，择优），支持 last-write-wins（最新优先）和 authority precedence（权威优先）两种策略
 - **迭代式细节召回**：LLM 评估上下文充分性 → 主动请求缺失细节 → 召回并合并 → 重试循环，含最大迭代次数和窗口溢出保护
+
+![K 轮原文窗口与 end_of_turn 异步时间轴：异步延迟由最近 K 轮原文缓冲](docs/images/xcontext/fig7-kturn-async.png)
 
 ### 用户画像
 
@@ -73,9 +88,9 @@ Window_t = Inject(
 
 支持可配置的晋升/降级规则，例如用户确认事实后自动从 `session` 晋升到 `long_term`。
 
-### Agent 对话 Demo
+### Agent 对话前端
 
-内置一个基于 React 18 的前端 Demo（`frontend/index.html`），将后端 API 完整串联。右侧面板是**对话驱动的观察面板**：摘要提取与画像构造在每轮对话结束时后台自动进行（end_of_turn），摘要、画像事实、召回细节在下一轮开始时同步注入上下文——全程无需手动触发。
+内置一个基于 React 18 的前端界面（`frontend/index.html`），将后端 API 完整串联，可直接用于生产环境。右侧面板是**对话驱动的观察面板**：摘要提取与画像构造在每轮对话结束时后台自动进行（end_of_turn），摘要、画像事实、召回细节在下一轮开始时同步注入上下文——全程无需手动触发。
 
 - **流式回复**：Agent 回复通过 SSE（Server-Sent Events）逐 token 推送，实现打字机效果
 - **对话剧本引导**：内置客服退款 / 手机推荐两套剧本，覆盖 Full → Balanced → Compact → Minimal 四种预算模式，支持一键运行完整剧本
@@ -87,13 +102,17 @@ Window_t = Inject(
 
 #### 前端使用指引
 
-1. 启动服务后，浏览器打开 `http://localhost:8765/`（自动跳转到 Demo 页面）
+1. 启动服务后，浏览器打开 `http://localhost:8765/`（自动跳转到对话页面）
 2. 在左侧输入框直接对话；或点击"显示剧本"选择剧本后，点击步骤填充或"运行完整剧本"自动演示
 3. 对话过程中观察右侧面板自动更新：每轮 Agent 回复结束后，摘要提取与画像构造任务立即转入后台异步处理，面板随任务完成自动刷新，全程无需点击任何触发按钮。当前右侧包含：上下文窗口（含长任务健康度）、摘要与召回、用户画像
 
-![主界面与上下文窗口面板](docs/images/demo-chat-window.png)
+![主界面与上下文窗口面板](docs/images/chat-window.png)
 
-![上下文策略面板：策略执行、Token 用量与压缩状态](docs/images/demo-policy-panel.png)
+![上下文策略面板：策略执行、Token 用量与压缩状态](docs/images/policy-panel.png)
+
+![摘要与召回面板：同步注入、自动摘要、后台任务](docs/images/summaries-recall.png)
+
+![用户画像面板：五维画像自动提取，按生命周期分级管理](docs/images/profile-panel.png)
 
 ## 技术栈
 
@@ -400,6 +419,8 @@ POST /profiles/{user_id}/acceptable-ads/check           校验广告候选是否
 | `correlation_group` | str | 关联组标识（用于级联规则） |
 | `expires_at` | datetime | 过期时间 |
 
+![一条上下文的五张身份证：type / scope / authority / priority / confidence](docs/images/xcontext/fig2-context-item-id.png)
+
 ## 压缩决策表
 
 按重要性 × 预算模式选择压缩级别：
@@ -418,6 +439,8 @@ POST /profiles/{user_id}/acceptable-ads/check           校验广告候选是否
 - **Medium**：推断内容（`inferred`）、工具结果、用户画像
 - **Low**：假设内容（`assumed`）、历史摘要
 
+![压缩决策表：重要性 × 预算档位交叉决定 L0–L4 压缩级别](docs/images/xcontext/fig5-compression-table.png)
+
 ## 项目结构
 
 ```
@@ -426,10 +449,13 @@ XContext/
 ├── README.en.md                # 英文 README
 ├── .env                        # 环境变量配置（不入库）
 ├── .gitignore
+├── docs/
+│   ├── xcontext_article.md     # 深度解读文章
+│   └── images/                 # 配图：架构示意图（xcontext/fig0–fig7）+ 前端界面截图
 ├── docker-compose.yml          # Docker Compose: API + Redis
 ├── AGENTS.md                   # AI 助手项目指南
 ├── frontend/
-│   └── index.html              # 前端 Demo（React 18 单文件，Agent 对话界面）
+│   └── index.html              # 前端界面（React 18 单文件，Agent 对话控制台）
 ├── backend/
 │   ├── app/
 │   │   ├── main.py             # FastAPI 应用入口

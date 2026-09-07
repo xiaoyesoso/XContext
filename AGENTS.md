@@ -6,7 +6,7 @@ XContext is a Python backend service that implements the unified context-managem
 
 > Context Window = f(Context)
 
-The service exposes RESTful APIs for context ingestion, layered context management, and configurable context-window composition strategies (sliding window, summary-based window, hybrid raw/summary, and dynamic orchestration with budget-mode-aware compression and cache-aware ordering). It also includes a multi-type summary subsystem (conversation/chapter/key-facts/model-readable summaries), async summary scheduling, detail recall with a K-turn raw window, conflict resolution, an iterative recall loop driven by LLM sufficiency evaluation, and a user-profile subsystem (five dimensions, relationship person/event tables, three-tier e-commerce preferences, scenario-aware loading, recommendation specs with acceptable-ad boundaries). An Agent chat endpoint with SSE streaming and a React frontend demo is included.
+The service exposes RESTful APIs for context ingestion, layered context management, and configurable context-window composition strategies (sliding window, summary-based window, hybrid raw/summary, and dynamic orchestration with budget-mode-aware compression and cache-aware ordering). It also includes action-based context retrieval and token-aware policy orchestration, a multi-type summary subsystem (conversation/chapter/key-facts/model-readable summaries), async summary scheduling, detail recall with a K-turn raw window, conflict resolution, an iterative recall loop driven by LLM sufficiency evaluation, and a user-profile subsystem (five dimensions, relationship person/event tables, three-tier e-commerce preferences, scenario-aware loading, recommendation specs with acceptable-ad boundaries). An Agent chat endpoint with SSE streaming and a React frontend console is included.
 
 ## 2. Tech Stack
 
@@ -75,7 +75,7 @@ XContext/
 ├── .env                        # Environment config (NOT tracked)
 ├── docker-compose.yml          # Docker Compose: API + Redis
 ├── .dockerignore               # Docker build excludes (build context is repo root)
-├── frontend/                   # Frontend demo (React 18 single-file)
+├── frontend/                   # Frontend UI (React 18 single-file)
 │   └── index.html              # Agent chat UI
 ├── backend/                    # Python backend service
 │   ├── app/
@@ -93,6 +93,8 @@ XContext/
 │   │   │   ├── metrics.py
 │   │   │   ├── archive.py
 │   │   │   ├── profiles.py     # User profile endpoints (persons/events/preferences/ads)
+│   │   │   ├── policies.py     # Context policy CRUD and execution endpoints
+│   │   │   ├── orchestration.py # Runtime orchestration state endpoint
 │   │   │   └── chat.py         # Agent chat endpoint (SSE streaming)
 │   │   ├── core/               # Core engine
 │   │   │   ├── engine.py       # ContextEngine pipeline orchestration
@@ -113,6 +115,8 @@ XContext/
 │   │   │   ├── category_preference.py   # Category prefs + price percentile + sibling fallback
 │   │   │   ├── profile_selector.py      # Scenario-aware profile loading
 │   │   │   ├── recommendation_spec.py   # Recommendation spec + acceptable-ad boundary
+│   │   │   ├── context_actions.py       # Context retrieval Action implementations
+│   │   │   ├── policy_orchestrator.py   # Token-aware context policy orchestration
 │   │   │   ├── layers.py       # LayerManager
 │   │   │   ├── summarizer.py   # Summarizer (Mock)
 │   │   │   ├── llm.py          # OpenAI-compatible LLM summarizer
@@ -122,6 +126,8 @@ XContext/
 │   │   │   └── logging_config.py
 │   │   ├── services/
 │   │   │   ├── context_service.py  # Application service layer
+│   │   │   ├── policy_service.py   # Context policy service layer
+│   │   │   ├── chat_orchestrator.py # Conversation orchestration service
 │   │   │   └── profile_service.py  # User profile service layer
 │   │   └── repositories/       # Storage repositories
 │   │       ├── base.py         # Repository ABC
@@ -138,24 +144,32 @@ XContext/
 │   │   ├── conftest.py         # Test fixtures
 │   │   ├── test_api.py         # API integration tests
 │   │   ├── test_pipeline.py    # Pipeline unit tests
-│   │   ├── test_dynamic.py     # Dynamic orchestration tests (Phase 7)
-│   │   ├── test_summary_recall.py  # Summary & detail recall tests (Phase 8-10)
-│   │   ├── test_profile.py     # User profile tests (Phase 11)
+│   │   ├── test_dynamic.py     # Dynamic orchestration tests
+│   │   ├── test_summary_recall.py  # Summary and detail recall tests
+│   │   ├── test_policy_orchestration.py # Action and policy orchestration tests
+│   │   ├── test_policy_api.py  # Context policy API tests
+│   │   ├── test_profile.py     # User profile tests
 │   │   ├── test_layers.py      # Layer management tests
 │   │   └── test_archive.py     # Archive tests
 │   ├── data/                   # SQLite database directory (Docker volume)
 │   ├── Dockerfile
 │   └── requirements.txt
+├── docs/images/                # Frontend screenshots referenced by README
 ├── extra_doc/                  # External reference documents (NOT tracked by git)
 └── openspec/                   # OpenSpec change/spec workspace (NOT tracked by git)
     ├── config.yaml
     └── changes/
-        └── context-window-service/
+        ├── context-window-service/
+        │   ├── proposal.md
+        │   ├── design.md       # System Design Document (SDD)
+        │   ├── tasks.md
+        │   ├── specs/context-api/spec.md
+        │   └── assets/
+        └── context-management-policy/
             ├── proposal.md
-            ├── design.md       # System Design Document (SDD)
+            ├── design.md
             ├── tasks.md
-            ├── specs/context-api/spec.md
-            └── assets/
+            └── specs/policy-orchestration/spec.md
 ```
 
 ## 5. Testing and Validation
@@ -173,7 +187,7 @@ XContext/
   openspec validate --changes <change-name> --json
   ```
 
-Current test coverage: 133 tests passing, covering API integration, pipeline stages, dynamic compression, cache-aware ordering, negative context, failure history, the 17K budget allocation worked example, multi-type summary extraction, model-readable compression, async summary scheduling, K-turn raw window eviction/recall, conflict resolution, iterative recall loops, five-dimension profile extraction, relationship fact/opinion separation with directional attitudes, category price percentile with sibling fallback, scenario-aware loading, spec derivation, and acceptable-ad filtering.
+Current test coverage: 169 tests passing, covering API integration, pipeline stages, dynamic compression, cache-aware ordering, negative context, failure history, the 17K budget allocation worked example, multi-type summary extraction, model-readable compression, async summary scheduling, K-turn raw window eviction/recall, conflict resolution, iterative recall loops, five-dimension profile extraction, relationship fact/opinion separation with directional attitudes, category price percentile with sibling fallback, scenario-aware loading, spec derivation, acceptable-ad filtering, action-based context retrieval, token-aware policy orchestration, and policy API CRUD.
 
 ## 6. Docker Deployment
 

@@ -73,9 +73,9 @@ The service decomposes context window construction into five stages: **Retrieve 
 
 Supports configurable promotion/demotion rules, e.g., automatically promoting a confirmed fact from `session` to `long_term`.
 
-### Agent Chat Demo
+### Agent Chat Frontend
 
-A React 18-based frontend demo (`frontend/index.html`) is included, wiring up the backend APIs end-to-end. The right-hand panels are **conversation-driven observation panels**: summary extraction and profile construction run automatically in the background at the end of each turn (end_of_turn), while summaries, profile facts, and recalled details are injected synchronously into the context at the start of the next turn — no manual triggers anywhere.
+A React 18-based frontend UI (`frontend/index.html`) is included, wiring up the backend APIs end-to-end and ready for production use. The right-hand panels are **conversation-driven observation panels**: summary extraction and profile construction run automatically in the background at the end of each turn (end_of_turn), while summaries, profile facts, and recalled details are injected synchronously into the context at the start of the next turn — no manual triggers anywhere.
 
 - **Streaming replies**: Agent responses are pushed token-by-token via SSE (Server-Sent Events) for a typewriter effect
 - **Scripted scenarios**: A customer-service refund script and a phone-recommendation script cover Full → Balanced → Compact → Minimal budget modes, with one-click full-script runs
@@ -86,15 +86,15 @@ A React 18-based frontend demo (`frontend/index.html`) is included, wiring up th
 
 #### Frontend Guide
 
-1. Start the service, then open `http://localhost:8765/` in a browser (redirects to the demo page)
-2. Chat directly in the left-hand input; or click "Show demo script", pick a script, and click a step or "Run Full Script" for a guided tour
+1. Start the service, then open `http://localhost:8765/` in a browser (redirects to the chat page)
+2. Chat directly in the left-hand input; or click "Show guided script", pick a script, and click a step or "Run Full Script" for a guided tour
 3. Watch the right-hand panels update automatically as the conversation proceeds: as soon as the agent's reply for a turn completes, summary extraction and profile construction shift to background async processing, and the panels refresh themselves as tasks finish — no trigger buttons to click
 
-![Main UI with context window panel](docs/images/demo-chat-window.png)
+![Main UI with context window panel](docs/images/chat-window.png)
 
-![Summaries & recall panel: sync injection, auto summaries, background tasks](docs/images/demo-summaries.png)
+![Context policy panel: policy execution, token usage and compression state](docs/images/policy-panel.png)
 
-![User profile panel: five dimensions, spec & ad boundary](docs/images/demo-profile.png)
+![Summaries & recall panel: sync injection, auto summaries, background tasks](docs/images/summaries-recall.png)
 
 ## Tech Stack
 
@@ -430,7 +430,7 @@ XContext/
 ├── docker-compose.yml          # Docker Compose: API + Redis
 ├── AGENTS.md                   # AI assistant project guide
 ├── frontend/
-│   └── index.html              # Frontend demo (React 18 single-file, Agent chat UI)
+│   └── index.html              # Frontend UI (React 18 single-file, Agent chat console)
 ├── backend/
 │   ├── app/
 │   │   ├── main.py             # FastAPI application entry

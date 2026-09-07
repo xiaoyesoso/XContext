@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 660" width="1200" height="660" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, Helvetica, Arial, sans-serif">
+  <rect width="1200" height="660" fill="#FFFFFF"/>
+
+  <text x="60" y="62" font-size="40" font-weight="700" fill="#1F2328">Context Window = f(Context)</text>
+  <text x="60" y="98" font-size="18" fill="#6B7280">窗口不是仓库的拷贝，是每一轮重新算出来的一份菜单</text>
+
+  <!-- ============ LEFT: all raw material ============ -->
+  <text x="60" y="150" font-size="18" font-weight="600" fill="#1F2328">全部素材（后厨）</text>
+  <text x="60" y="174" font-size="14" fill="#9CA3AF">塞进去多少，跟用上多少没关系</text>
+
+  <g>
+    <!-- row 1 -->
+    <rect x="60" y="192" width="104" height="58" rx="10" fill="#CCFBF1" stroke="#0D9488" stroke-width="1.5"/>
+    <text x="112" y="226" font-size="15" fill="#065F46" text-anchor="middle">对话历史</text>
+    <rect x="174" y="192" width="104" height="58" rx="10" fill="#DBEAFE" stroke="#3E63DD" stroke-width="1.5"/>
+    <text x="226" y="226" font-size="15" fill="#1E40AF" text-anchor="middle">用户画像</text>
+    <rect x="288" y="192" width="104" height="58" rx="10" fill="#FEE4E2" stroke="#E5484D" stroke-width="1.5"/>
+    <text x="340" y="226" font-size="15" fill="#B42318" text-anchor="middle">约束规则</text>
+
+    <!-- row 2 -->
+    <rect x="60" y="262" width="104" height="58" rx="10" fill="#FEF0C7" stroke="#F59E0B" stroke-width="1.5"/>
+    <text x="112" y="296" font-size="15" fill="#92400E" text-anchor="middle">关键事实</text>
+    <rect x="174" y="262" width="104" height="58" rx="10" fill="#F3F4F6" stroke="#D1D5DB" stroke-width="1.5"/>
+    <text x="226" y="296" font-size="15" fill="#6B7280" text-anchor="middle">历史摘要</text>
+    <rect x="288" y="262" width="104" height="58" rx="10" fill="#F3F4F6" stroke="#D1D5DB" stroke-width="1.5"/>
+    <text x="340" y="296" font-size="15" fill="#6B7280" text-anchor="middle">任务描述</text>
+
+    <!-- row 3 -->
+    <rect x="60" y="332" width="104" height="58" rx="10" fill="#F3F4F6" stroke="#D1D5DB" stroke-width="1.5"/>
+    <text x="112" y="366" font-size="15" fill="#6B7280" text-anchor="middle">订单记录</text>
+    <rect x="174" y="332" width="104" height="58" rx="10" fill="#F3F4F6" stroke="#D1D5DB" stroke-width="1.5"/>
+    <text x="226" y="366" font-size="15" fill="#6B7280" text-anchor="middle">品类偏好</text>
+    <rect x="288" y="332" width="104" height="58" rx="10" fill="#F3F4F6" stroke="#D1D5DB" stroke-width="1.5"/>
+    <text x="340" y="366" font-size="15" fill="#6B7280" text-anchor="middle">发票信息</text>
+
+    <!-- row 4 -->
+    <rect x="60" y="402" width="104" height="58" rx="10" fill="#F3F4F6" stroke="#D1D5DB" stroke-width="1.5"/>
+    <text x="112" y="436" font-size="15" fill="#6B7280" text-anchor="middle">工具结果</text>
+    <rect x="174" y="402" width="104" height="58" rx="10" fill="#F3F4F6" stroke="#D1D5DB" stroke-width="1.5"/>
+    <text x="226" y="436" font-size="15" fill="#6B7280" text-anchor="middle">闲聊寒暄</text>
+    <rect x="288" y="402" width="104" height="58" rx="10" fill="#F3F4F6" stroke="#D1D5DB" stroke-width="1.5"/>
+    <text x="340" y="436" font-size="15" fill="#6B7280" text-anchor="middle">收货地址</text>
+  </g>
+
+  <!-- arrow left -> center -->
+  <line x1="398" y1="316" x2="438" y2="316" stroke="#9CA3AF" stroke-width="2.5"/>
+  <polygon points="438,316 428,310 428,322" fill="#9CA3AF"/>
+
+  <!-- ============ CENTER: the f function ============ -->
+  <rect x="444" y="212" width="316" height="208" rx="22" fill="#EEF2FF" stroke="#3E63DD" stroke-width="2.5"/>
+  <text x="602" y="256" font-size="20" font-weight="600" fill="#3E63DD" text-anchor="middle">主厨 f（ ）</text>
+  <text x="602" y="294" font-size="34" font-weight="700" fill="#1E3A8A" text-anchor="middle" font-family="Menlo, Consolas, monospace">f ( Context )</text>
+  <text x="602" y="322" font-size="14" fill="#6B7280" text-anchor="middle">按当前任务、预算、优先级现场决定</text>
+
+  <g font-size="14" fill="#3E63DD" text-anchor="middle">
+    <rect x="458" y="344" width="55" height="30" rx="8" fill="#FFFFFF" stroke="#C7D2FE"/>
+    <text x="485" y="364">检索</text>
+    <rect x="519" y="344" width="55" height="30" rx="8" fill="#FFFFFF" stroke="#C7D2FE"/>
+    <text x="546" y="364">选择</text>
+    <rect x="580" y="344" width="55" height="30" rx="8" fill="#FFFFFF" stroke="#C7D2FE"/>
+    <text x="607" y="364">压缩</text>
+    <rect x="641" y="344" width="55" height="30" rx="8" fill="#FFFFFF" stroke="#C7D2FE"/>
+    <text x="668" y="364">排序</text>
+    <rect x="702" y="344" width="44" height="30" rx="8" fill="#FFFFFF" stroke="#C7D2FE"/>
+    <text x="724" y="364">注入</text>
+  </g>
+  <text x="602" y="402" font-size="14" fill="#6B7280" text-anchor="middle">策略可配置 / 可观测 / 可回滚</text>
+
+  <!-- discarded -->
+  <line x1="602" y1="422" x2="602" y2="470" stroke="#D1D5DB" stroke-width="2.5" stroke-dasharray="6 5"/>
+  <polygon points="602,478 592,466 612,466" fill="#D1D5DB"/>
+  <rect x="470" y="486" width="264" height="42" rx="10" fill="#F9FAFB" stroke="#E5E7EB" stroke-dasharray="5 4"/>
+  <text x="602" y="513" font-size="16" fill="#9CA3AF" text-anchor="middle">装不下的，先压缩，再整段丢掉</text>
+
+  <!-- arrow center -> right -->
+  <line x1="762" y1="316" x2="802" y2="316" stroke="#9CA3AF" stroke-width="2.5"/>
+  <polygon points="802,316 792,310 792,322" fill="#9CA3AF"/>
+
+  <!-- ============ RIGHT: the window ============ -->
+  <text x="812" y="150" font-size="18" font-weight="600" fill="#1F2328">模型这一轮真正能看见的</text>
+  <text x="812" y="174" font-size="14" fill="#9CA3AF">就那么一小块画布</text>
+
+  <rect x="812" y="190" width="330" height="300" rx="16" fill="#FFFFFF" stroke="#1F2328" stroke-width="2.5"/>
+  <path d="M812 206 a16 16 0 0 1 16 -16 h298 a16 16 0 0 1 16 16 v30 h-330 z" fill="#1F2328"/>
+  <text x="828" y="228" font-size="14" fill="#FFFFFF" letter-spacing="1.5">CONTEXT WINDOW</text>
+  <text x="1130" y="228" font-size="14" fill="#9CA3AF" text-anchor="end">3072 / 4096</text>
+
+  <rect x="828" y="252" width="298" height="48" rx="10" fill="#FEF3F2" stroke="#E5484D" stroke-width="1.5"/>
+  <circle cx="852" cy="276" r="6" fill="#E5484D"/>
+  <text x="868" y="282" font-size="16" font-weight="600" fill="#B42318">约束 · 不要小米</text>
+  <text x="1112" y="282" font-size="15" fill="#B42318" text-anchor="end">P10</text>
+
+  <rect x="828" y="310" width="298" height="48" rx="10" fill="#FFFAEB" stroke="#F59E0B" stroke-width="1.5"/>
+  <circle cx="852" cy="334" r="6" fill="#F59E0B"/>
+  <text x="868" y="340" font-size="16" font-weight="600" fill="#92400E">关键事实 · 预算 3000</text>
+  <text x="1112" y="340" font-size="15" fill="#92400E" text-anchor="end">P9</text>
+
+  <rect x="828" y="368" width="298" height="48" rx="10" fill="#EFF6FF" stroke="#3E63DD" stroke-width="1.5"/>
+  <circle cx="852" cy="392" r="6" fill="#3E63DD"/>
+  <text x="868" y="398" font-size="16" font-weight="600" fill="#1E40AF">用户画像 · 安卓偏好</text>
+  <text x="1112" y="398" font-size="15" fill="#1E40AF" text-anchor="end">P8</text>
+
+  <rect x="828" y="426" width="298" height="48" rx="10" fill="#F0FDFA" stroke="#0D9488" stroke-width="1.5"/>
+  <circle cx="852" cy="450" r="6" fill="#0D9488"/>
+  <text x="868" y="456" font-size="16" font-weight="600" fill="#065F46">最近对话 · 3 轮原文</text>
+  <text x="1112" y="456" font-size="15" fill="#065F46" text-anchor="end">P7</text>
+
+  <text x="812" y="522" font-size="14" fill="#9CA3AF">同一个用户问同一句话，换个场景，可能完全是两份菜单</text>
+
+  <line x1="60" y1="576" x2="1140" y2="576" stroke="#E5E7EB" stroke-width="1.5"/>
+  <text x="60" y="612" font-size="17" fill="#4B5563">左边那 12 块，最后只留下右边这 4 条。<tspan font-weight="700" fill="#1F2328">中间那个 f，才是真正干活的地方。</tspan></text>
+  <text x="60" y="638" font-size="15" fill="#9CA3AF">我们平时花 90% 的精力在「多存点」，却几乎没花精力在设计这个 f</text>
+</svg>
