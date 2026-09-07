@@ -108,7 +108,9 @@ class KeyFactExtractor:
                 {"role": "user", "content": prompt},
             ],
             temperature=0.1,
-            max_tokens=512,
+            # Reasoning-style models spend completion tokens on thinking first;
+            # a small cap exhausts the budget before any content is emitted.
+            max_tokens=2048,
         )
 
         raw_text = (response.choices[0].message.content or "").strip()

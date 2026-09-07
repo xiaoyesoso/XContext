@@ -123,6 +123,16 @@ class UserProfileExtractor:
             content_parts.append(f"{prefix} {item.content_as_string()}")
 
         prompt = _EXTRACTION_PROMPT + "\n".join(content_parts)
+        raw_text = await self._call(prompt)
+        facts = parse_profile_facts(raw_text)
+        # Reasoning-style models occasionally burn the whole completion budget
+        # on thinking and return empty content; retry once in that case.
+        if not facts:
+            raw_text = await self._call(prompt)
+            facts = parse_profile_facts(raw_text)
+        return facts
+
+    async def _call(self, prompt: str) -> str:
         response = await self._client.chat.completions.create(
             model=self._model,
             messages=[
@@ -130,10 +140,11 @@ class UserProfileExtractor:
                 {"role": "user", "content": prompt},
             ],
             temperature=0.1,
-            max_tokens=512,
+            # Reasoning-style models spend completion tokens on thinking first;
+            # a small cap exhausts the budget before any content is emitted.
+            max_tokens=2048,
         )
-        raw_text = (response.choices[0].message.content or "").strip()
-        return parse_profile_facts(raw_text)
+        return (response.choices[0].message.content or "").strip()
 
 
 class MockUserProfileExtractor:

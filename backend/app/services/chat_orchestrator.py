@@ -25,6 +25,7 @@ from app.models import (
     ContextSource,
     ContextType,
     PolicyExecution,
+    TaskState,
 )
 from app.services.profile_service import UserProfileService
 from app.services.summary_service import SummaryService
@@ -118,7 +119,7 @@ class ChatOrchestrator:
 
     @staticmethod
     def user_for_session(session_id: str) -> str:
-        """Derive the demo user id owning a chat session."""
+        """Derive the user id owning a chat session."""
         return f"user-{session_id}"
 
     def _register_task(self, session_id: str, kind: str, item_count: int) -> dict:
@@ -153,6 +154,7 @@ class ChatOrchestrator:
         user_message: str,
         scenario: Optional[str] = None,
         token_budget: Optional[int] = None,
+        task_state: Optional[TaskState] = None,
     ) -> dict:
         """Synchronously inject summaries, profile facts, and recalled details.
 
@@ -223,7 +225,7 @@ class ChatOrchestrator:
             user_message=user_message,
             items=items,
             state={"k_turn": k_state},
-            task_state=None,
+            task_state=task_state,
             token_budget=self._turn_token_budgets.get(session_id),
         )
         self._policy_executions[session_id] = policy_execution
@@ -401,9 +403,20 @@ class ChatOrchestrator:
 
         # Run construction tasks concurrently so a slow summary LLM does not
         # block profile extraction or spec derivation.
+        # Profile extraction only analyzes the recent conversation tail so its
+        # prompt stays bounded as the session grows; fact deduplication still
+        # considers every profile fact stored in this session.
+        conversation_tail = [
+            i for i in items if i.type != ContextType.PROFILE
+        ][-8:]
+        profile_contents = {
+            i.content for i in items if i.type == ContextType.PROFILE
+        }
         await asyncio.gather(
             self._run_summary_extraction(session_id, items),
-            self._run_profile_extraction(session_id, user_id, items, scenario),
+            self._run_profile_extraction(
+                session_id, user_id, conversation_tail, scenario, profile_contents
+            ),
             self._run_spec_derivation(session_id, user_id, scenario),
             return_exceptions=True,
         )
@@ -457,6 +470,7 @@ class ChatOrchestrator:
         user_id: str,
         items: list[ContextItem],
         scenario: Optional[str],
+        profile_contents: set[str],
     ) -> None:
         record = self._register_task(session_id, "profile_extract", len(items))
         try:
@@ -479,9 +493,7 @@ class ChatOrchestrator:
                 else:
                     fact.source = "conversation_inference"  # type: ignore[assignment]
                     fact.time_level = "candidate"  # type: ignore[assignment]
-            existing = {
-                i.content for i in items if i.type == ContextType.PROFILE
-            }
+            existing = set(profile_contents)
             new_count = 0
             for fact in facts:
                 if fact.content in existing:

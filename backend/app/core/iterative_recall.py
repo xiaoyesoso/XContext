@@ -135,7 +135,9 @@ class IterativeRecallLoop:
                     {"role": "user", "content": prompt},
                 ],
                 temperature=0.1,
-                max_tokens=256,
+                # Reasoning-style models spend completion tokens on thinking
+                # first; a small cap exhausts the budget before content.
+                max_tokens=2048,
             )
 
             raw = (response.choices[0].message.content or "").strip()

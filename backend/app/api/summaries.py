@@ -3,7 +3,7 @@
 Exposes the multi-type summary subsystem (conversation / chapter /
 key facts / model-readable), the async summary scheduler, the K-turn
 raw window, keyword detail recall, the iterative recall loop, and
-conflict resolution to the frontend demo.
+conflict resolution to the frontend UI.
 """
 
 from typing import Optional

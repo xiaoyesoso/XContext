@@ -146,6 +146,7 @@ async def chat(request: ChatRequest) -> ChatResponse:
         user_message=request.message,
         scenario=request.scenario,
         token_budget=request.token_budget.total if request.token_budget else None,
+        task_state=request.task_state,
     )
 
     # 2. Compose the context window via the policy orchestrator.
@@ -212,6 +213,7 @@ async def chat_stream(request: ChatRequest):
         user_message=request.message,
         scenario=request.scenario,
         token_budget=request.token_budget.total if request.token_budget else None,
+        task_state=request.task_state,
     )
 
     # 2. Compose the context window (synchronous, before streaming).

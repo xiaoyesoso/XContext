@@ -43,7 +43,9 @@ class OpenAISummarizer(Summarizer):
                 {"role": "user", "content": prompt},
             ],
             temperature=0.3,
-            max_tokens=256,
+            # Reasoning-style models spend completion tokens on thinking first;
+            # a small cap exhausts the budget before any content is emitted.
+            max_tokens=2048,
         )
         summary_text = response.choices[0].message.content or ""
 

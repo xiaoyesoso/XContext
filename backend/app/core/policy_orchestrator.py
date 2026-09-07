@@ -85,6 +85,7 @@ class PolicyOrchestrator:
                 PolicySegment(action_name="key_facts", priority=9),
                 PolicySegment(action_name="user_profile", priority=8),
                 PolicySegment(action_name="dialogue_history", priority=7),
+                PolicySegment(action_name="task_state", priority=6),
                 PolicySegment(action_name="summary", priority=5),
                 PolicySegment(action_name="detail_recall", priority=4),
             ],

@@ -44,7 +44,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS: allow the frontend demo to call the API from the browser.
+# CORS: allow the frontend UI to call the API from the browser.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -66,7 +66,7 @@ app.include_router(orchestration.router)
 app.include_router(policies.router)
 app.include_router(tasks.router)
 
-# Serve the frontend demo if a static directory exists.
+# Serve the frontend UI if a static directory exists.
 # Resolution order: STATIC_DIR env override -> repo layout (XContext/frontend)
 # -> container layout (/app/frontend, see Dockerfile).
 _static_candidates = [

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>XContext Agent Demo</title>
+<title>XContext Agent Console</title>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js"></script>
@@ -116,7 +116,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .prompt-toggle { cursor: pointer; color: var(--accent); font-size: 12px; user-select: none; }
 .prompt-toggle:hover { text-decoration: underline; }
 
-/* Demo script */
+/* Guided script */
 .script-guide { max-width: 600px; margin: 0 auto; }
 .script-guide h4 { font-size: 14px; color: var(--accent); margin-bottom: 10px; }
 .script-step { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; transition: border-color 0.2s; }
@@ -196,7 +196,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .iter-badge.max_iterations_reached { background: rgba(251,191,36,0.2); color: var(--orange); }
 .iter-badge.window_overflow { background: rgba(248,113,113,0.2); color: var(--red); }
 
-/* Conflict demo */
+/* Conflict panel */
 .conf-input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 6px 8px; font-size: 11px; margin-bottom: 5px; }
 .conf-input:focus { outline: none; border-color: var(--accent); }
 .conf-winner { background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.4); border-radius: 6px; padding: 6px 8px; font-size: 11px; margin-top: 6px; }
@@ -380,9 +380,9 @@ const i18n = {
     source: '来源',
     status: '状态',
     relationships: '关系画像（人物 + 事件）',
-    seedDemoBtn: '✚ 添加演示数据',
+    seedSampleBtn: '✚ 添加示例数据',
     refresh: '↻ 刷新',
-    noPersons: '暂无人物记录。点击"添加演示数据"创建老王 + 事件。',
+    noPersons: '暂无人物记录。点击"添加示例数据"创建老王 + 事件。',
     eventTimeline: '事件时间线（事实 vs 观点分离）',
     categoryPrefs: '品类偏好（三层架构）',
     percentileBtn: '计算订单价格百分位',
@@ -428,14 +428,14 @@ const i18n = {
     promptFragment: 'Prompt Fragment',
     expand: '▶ Expand',
     collapse: '▼ Collapse',
-    scriptTitle: 'Demo Script — Customer Service Refund',
-    scriptTitleRecommend: 'Demo Script — Phone Recommendation (Profile)',
+    scriptTitle: 'Guided Script — Customer Service Refund',
+    scriptTitleRecommend: 'Guided Script — Phone Recommendation (Profile)',
     scriptDesc: 'Click a step to fill the input, or run the full script automatically. Watch the sidebar to see compression levels change as the token budget tightens. Summaries are generated automatically at the end of each turn and injected at the start of the next.',
     scriptDescRecommend: 'After running the script, switch to the "User Profile" tab: five-dimension facts, relationships, and the recommendation spec are extracted and injected automatically during the conversation — no manual triggers.',
     runFullScript: 'Run Full Script',
     addConstraint: '+ Add Refund Policy Constraint',
-    showScript: 'Show demo script',
-    hideScript: 'Hide demo script',
+    showScript: 'Show guided script',
+    hideScript: 'Hide guided script',
     constraintAdded: 'Refund policy constraint added to context.',
     constraintFailed: 'Failed to add constraint: ',
     errorPrefix: 'Error: ',
@@ -520,9 +520,9 @@ const i18n = {
     source: 'Source',
     status: 'Status',
     relationships: 'Relationships (persons + events)',
-    seedDemoBtn: '✚ Seed demo data',
+    seedSampleBtn: '✚ Seed sample data',
     refresh: '↻ Refresh',
-    noPersons: 'No persons yet. Click "Seed demo data" to create 老王 + an event.',
+    noPersons: 'No persons yet. Click "Seed sample data" to create 老王 + an event.',
     eventTimeline: 'Event timeline (fact vs opinion separated)',
     categoryPrefs: 'Category Preferences (3-tier)',
     percentileBtn: 'Compute order price percentiles',
@@ -609,7 +609,7 @@ function App() {
   // Shared state
   // ------------------------------------------------------------------
   const [lang, setLang] = useState('zh');
-  const [sessionId, setSessionId] = useState(() => 'demo-' + Math.random().toString(36).slice(2, 8));
+  const [sessionId, setSessionId] = useState(() => 'session-' + Math.random().toString(36).slice(2, 8));
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
@@ -917,7 +917,7 @@ function App() {
   }
 
   async function runFullScript() {
-    setSessionId('demo-' + Math.random().toString(36).slice(2, 8));
+    setSessionId('session-' + Math.random().toString(36).slice(2, 8));
     setMessages([]);
     setContextItems([]);
     setMetrics(null);
@@ -1137,7 +1137,7 @@ function App() {
       const resp = await fetch('/profiles/' + profileUserId + '/preferences/percentiles', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // Demo order history: shirts in the ~70% price band.
+        // Sample order history: shirts in the ~70% price band.
         body: JSON.stringify({
           orders: [
             { category_id: 'shirts', sku_id: 'sku-1', price: 59, price_percentile: 0.7 },
@@ -1235,7 +1235,7 @@ function App() {
   return (
     <React.Fragment>
       <div className="header">
-        <h1>XContext Agent Demo</h1>
+        <h1>XContext Agent Console</h1>
         <span className="badge">Context Window = f(Context)</span>
         <button className="lang-toggle" onClick={toggleLang}>{lang === 'zh' ? 'English' : '中文'}</button>
         <span className="session">{t.session}: {sessionId}</span>
@@ -1820,7 +1820,7 @@ function App() {
               <div className="sb-section">
                 <h3>{t.relationships}</h3>
                 <div style={{ marginBottom: '8px' }}>
-                  <button className="mini-btn" onClick={seedRelationships} disabled={seeding}>{t.seedDemoBtn}</button>
+                  <button className="mini-btn" onClick={seedRelationships} disabled={seeding}>{t.seedSampleBtn}</button>
                   <button className="mini-btn" onClick={loadProfileData} disabled={loadingProfile}>{t.refresh}</button>
                 </div>
                 {persons.length === 0 && <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>{t.noPersons}</div>}
